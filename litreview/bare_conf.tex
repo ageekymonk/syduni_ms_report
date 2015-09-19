@@ -399,31 +399,42 @@ in the age of big data and distributed computing
 \section{Introduction}
 % no \IEEEPARstart
 
-KNN (K Nearest Neighbour) is one of the simplest and elegant
+KNN (K Nearest Neighbour) Join is one of the simplest and elegant
 classification or regression algorithm which works remarkably well in
 practice. It is a non parametric lazy learning algorithm. It is
 classified as one of the top 10 machine learning algorithm. KNN Join
 has become an important primitive in datamining and
-finds its application in multimedia data retrieval, DNA search,
-Molecular Biology  and
-many other fields. It finds K similar points among the given
-dataset. Given all the benefits of KNN there are no efficient
-implementation for distributed dataset present in any machine learning
-libraries like apache mahout and spark mllib
+finds its application in multimedia data retrieval, Online
+recommendation, DNA search,
+Molecular Biology, bioinformatics  and
+many other fields.
+
+\medskip
+
+KNN Join is a computation intensive algorithm does
+not scale for large datasets. Since most of the current works in
+improving KNN Join are single node oriented, we cannot use KNN Join for datasets which does not fit into single nodes.
+With evergrowing datasets, the papers \cite{zhang_efficient_2012}
+\cite{lu_efficient_2012} \cite{stupar_rankreduceprocessing_2010} make use of
+Hadoop mapreduce framework \cite{_hadoop_mr} for KNN Join. But still there
+are no robust implementation present in any distributed machine learning
+libraries like apache mahout\cite{_apache_mahout} and spark mLlib\cite{_spark_mLlib}. In this literature review we
+will evaluate few of the KNN Join algorithm that are available.
 
 \section{KNN Join}
 
-\emph{Definition:1} Given two datasets R and S, where $R\ \epsilon\
-\mathbb{R}^d\ and\ S\ \epsilon\ \mathbb{R}^d$, KNN Join returns the K
-Nearest points in S for every point in R.
+\emph{Definition:1} Given two datasets R and S, where $R \in \mathbb{R}^d\ and\ S\ \in\ \mathbb{R}^d$, KNN Join returns the K
+Nearest Neighbours in S for every feature Vector in R.
 
 \bigskip
-     $KNN(R,S) = {(r, KNN(r,S), \forall r\ \epsilon\ \mathbb{R}^d)}$
+     $KNN(R,S) = {(r, KNN(r,S), \forall r\ \in\ \mathbb{R}^d)}$
 \bigskip
 
-\emph{Definition:2} Given two datasets R and S where $R\ \epsilon\
-\mathbb{R}^d\ and S\ \epsilon\ \mathbb{R}^d$, Approximate KNN Join returns the K
-approximate neighbours in S for every point in R.
+\emph{Definition:2} Given two datasets R and S where $R\ \in\
+\mathbb{R}^d\ and\ S\ \in\ \mathbb{R}^d$, Approximate KNN Join returns the K
+approximate neighbours in S for every feature Vector in R.
+
+\medskip
 
 If $p$ is the exact K\textsuperscript{th} neighbour of r and $p'$ be approximate
 K\textsuperscript{th} neighbour of r, then for any $\epsilon$
@@ -435,15 +446,15 @@ $d(p,r) <= d(p',r) <= (1+\epsilon) d(p,r)$
 \bigskip
 
 The computational complexity of KNN Join is
-$O(\|R\| \times \|S\|)$. KNN Join is computationally intensive process, which
-is the reason why it is difficult to be used in any application where
-the number of elements in set R and S is large. Until late 90s KNN was
-never considered a feasible algorithm at all due to its
-complexity. There is lot work has been done to reduce the
-computational complexity. Pre Big data era, algorithms were focussing
-on either Indexing Method or Paritioning Method in a centralized
-setup. In this modern day of high velocity and volume of data, only distributed
-approach will yield the results in resonable amount of time.
+$O(\|R\| \times \|S\|)$. Computation cost of KNN Join is very high, which
+deters everyone to use KNN Join in any application where
+the number of elements in dataset R and S is large. Until late 1990s, KNN Join was
+never considered a feasible algorithm at all due to its computational
+complexity. There are significant amount of research that has been done to reduce the
+computational complexity. Most algorithms that are out today have focussed
+on either Indexing Method or Paritioning Method in a standalone system. This is because most of those research predates the
+current big data era. In this modern day of high velocity and volume of data,
+only distributed approach will yield the results in resonable amount of time.
 
 \bigskip
 
@@ -466,7 +477,9 @@ n & Number of elements in Dataset \\
 
 c & some positive constant \\
 
-r,s & points in Dataset \\
+$R_i, S_i$ & Partitions in R and S Respectively \\
+
+r,s & feature Vectors in Dataset R and S Respectively \\
 
 d(r,s) & Distance between two points r and s \\
 
@@ -477,69 +490,105 @@ $O_i$ & Pivot points \\
 \end{table}
 
 \subsection{Methods}
-The various algorithms to solve the computational complexity
-falls into one or two of these two methodology.
+The current available research for reducing the computational
+complexity can be broadly classified into these methodology.
 \begin{enumerate}
 \item Index Based
 \item Partition Based
 \end{enumerate}
 
-In Index based KNN Join, an index is created for both R and S
+\medskip
+
+In Index based KNN Join, an index is created for one or both R and S
 dataset. Index is used a primary way of reducing complexity in \cite{jagadish_idistance:_2005}
-\cite{yu_efficient_2007} \cite{mux}. In distance based index
-\cite{jagadish_idistance:_2005} the number of comparison for every
-query can be as low as $log(n)$, where n is the number of element is
+\cite{yu_efficient_2007} \cite{bohm_epsilon_2001}.  With indexes it
+becomes easier to look for neighbouring elements in Dataset S, based
+on certain features like distance, boundary cells,  as we
+need to compare only a subset of elements which satisty the
+criteria. For example, In distance based index
+\cite{jagadish_idistance:_2005} we only compare elements which are at
+similar distance in S for an element in R. This can result in huge
+reduction in the number of comparison and it can be as low as $log(n)$, where n is the number of element is
 dataset S.
 
-Using index for reducing distance compuation with every element, works
-well for 2D or 3D geospatial data, but the major drawback with the
+\medskip
+
+Indexes does not scale for high dimension data. This is true for various
+index algorithms like R tree, $R^* tree$, Quad Tree, Mux tree, B+
+tree. Using index for reducing distance compuation with every element, works
+remarkably well for 2D or 3D geospatial data. The major drawback with the
 index based approach is that when the number of dimensions increase
 creating an index is much costly and its performance is similar to
-sequential scan. This is because at higher dimensions the distance
+that of sequential scan. This is because at higher dimensions the distance
 between closest and farthest neighbors will be nearly same
-\cite{beyer_when_1999}. One key problem with this approach is when
-data is distributed it is difficult to create an index.
+\cite{beyer_when_1999}. Another key problem with this approach, even
+for lower dimensions, when
+converting to distributed environment is that it is difficult to
+create an index and use it.
 
 \bigskip
 
 In Partition based KNN Join, the dataset is partitioned into different
-partitions and for each partition in R only few partitions in S which are
-near to R is considered for presence of Nearest Neighbours. The
-partition can be distance based or hashing based. This
-method quickly simplifies the number of distance calculations. This method is followed in
-\cite{lu_efficient_2012}, \cite{stupar_rankreduceprocessing_2010}. One
-of the main challenge is to get all nearby neighbours for a subset
-$R_i$ in relatively few subsets of $S_i$.
+non overlapping partitions. The
+partition can be distance based\cite{lu_efficient_2012} or hashing
+based \cite{stupar_rankreduceprocessing_2010} \cite{yao_k_2010}. For each partition in R only few partitions in S which are
+near to R is considered for presence of Nearest Neighbours. This
+method quickly simplifies the number of elements which we need to
+compare when we are looking for neighbours.
+
+\medskip
+
+There are few challenges with this approach as well. One
+of the main challenge is to find a way to partition all nearby neighbours for a subset
+$R_i$ in relatively few subsets of $S_i$. Hash based partition cannot
+get partition correctly, which means hash based partition will not
+provide accurate KNN Join results. In distance based partition it is difficult to partition
+with relatively low standard deviation in size of the partition. If
+not partitioned properly it can result in one big partition which
+would result in same performance as that of bruteforce.
 
 \bigskip
 
 \subsection{Centralised vs Distributed}
 
 Since most work in KNN Join has been done before the big data era,
-the main limitations of most algorithms are that being centralised
-\cite{jagadish_idistance:_2005}.
+the main limitations of most algorithms are that they are centralised
+\cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
+\cite{bohm_k-nearest_2004} \cite{kuan_fast_1997} \cite{yu_high-dimensional_2010}.
 Several recent studies \cite{stupar_rankreduceprocessing_2010},
 \cite{lu_efficient_2012} have focused on distributed
 processing, which enables those algorithms to be used in bigger
 dataset which is not possible otherwise.
+
+\medskip
 
 Hadoop Mapreduce was dominant framework for past 10 years. But as the
 systems evolve, mapreduce framework is on the way out
 too. Now spark is quickly becoming the defacto framework for
 distributed computing. There is significant increase in number users
 in spark and it has proved its exceptional performance over
-hadoop. But there are no work that has been done to make
-KNN Join better for this framework. This is an area where significant
-work is needed to convert algorithms in mapreduce framework to spark
+hadoop mapreduce. But there are no work that has been done to make
+KNN Join better for spark framework. This is an area where significant
+work is needed to convert algorithms in centralized settings and mapreduce framework  to spark
 framework.
 
 \subsection{Accuracy}
-The result of KNN Join can be either accurate or approximate. There
+Algorithms that computes KNN Join can provide accurate or approximate results. There
 are trade off between accuracy and the computation cost. There are few
-works dedicated to get approximate results quickly \cite{stupar_rankreduceprocessing_2010}
-\cite{zhang_efficient_2012} and at the same time trying to increase the accuracy
-level. One of the major problem with approximate algorithms is that at higher
-dimensions the accuracy becomes low.
+works dedicated to get approximate results \cite{stupar_rankreduceprocessing_2010}
+\cite{zhang_efficient_2012} and few for accurate
+\cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
+\cite{lu_efficient_2012}
+
+\medskip
+
+One of the major problem with approximate algorithms is that at higher
+dimensions the accuracy becomes very low. The $\epsilon$ paramter to
+control the level of accuracy, if it is very low can result in very
+poor performance than the accurate one. Only the applications that is
+using the algorithm can decide if such trade off is acceptable.
+
+\medskip
 
 Two methods are predominantly
 used in approximate algorithms.
@@ -559,8 +608,8 @@ There are couple of dominant framework for distributed processing.
 \end{enumerate}
 
 \subsection{Hadoop Mapreduce}
-Mapreduce is a programming paradigm for processing large datasets on a
-cluster. The model is inspired by functional programming concepts like
+Mapreduce\cite{dean_mapreduce:_2008} is a programming paradigm for processing large datasets on a
+very large cluster. The model is inspired by functional programming concepts like
 map and reduce. Mapreduce is primarily for batch processing at a
 petabyte scale. Figure ~\ref{fig:hadooparch} from \cite{_hadoop_mr_arch} gives an overview of the architecture of
 mapreduce.
@@ -583,6 +632,8 @@ is to reduce number of shuffle bytes. This is important because the
 primary focus on distributed processing nowadays is to preserve
 network bandwidth.
 
+\medskip
+
 Reduce phase takes output of map phase and reduces to final
 output. The framework also takes care of the following
 \begin{enumerate}
@@ -596,6 +647,8 @@ AMPLab at UCBerkeley. It is a generic framework for any large scale
 data processing. One of the main idea in spark's design is that most
 dataset can fit into RAM. Leveraging this, spark's in memory primitive
 makes it 10 to 100 times faster than hadoop mapreduce.
+
+\medskip
 
 Spark has a primitive in memory data abstraction called Resilient Distributed
 Dataset (RDD). RDD has multiple partitions and each partition is
@@ -612,6 +665,8 @@ algorithm should be designed to be implemented in one of these
 frameworks. Not all algorithms could be readily run on these
 frameworks. To design an efficient algorithms for these framworks,
 Some of the factors to be considered are
+
+\medskip
 
 \begin{enumerate}
 \item Algorithm has to divide data into partitions and handle the separately
@@ -654,6 +709,8 @@ The iDistance algorithm is based on the two key ideas
 \item Can convert any n dimensional point to single dimension by using
   the distance to the reference point
 \end{enumerate}
+
+\medskip
 
 The distance function employed is euclidean. We can use other methods
 like hamming, manhattan as well. The euclidean distance between two
@@ -747,9 +804,13 @@ impact of approximate PCA results on the algorithm. This would have
 helped in reducing the computational complexity for calcuating the
 PCA.
 
+\medskip
+
 Since the algorithm relies heavily on random IO access due to
 indexing, adopting the algo to the hadoop mapreduce framework will
 difficult because of its sequential design.
+
+\medskip
 
 There is no easy way to use spark readily for creating indexed
 data. Hence this algorithm cannot be readily adapted to spark.
@@ -761,6 +822,8 @@ A great deal of previous research on KNN Join focussed on creating
 index for the S dataset, but this paper \cite{xia_gorder:_2004} introduces a
 way to optimize the block nested loop join using a method called
 GORDER, in which they introduce a new ordering called as grid order.
+
+\medskip
 
 Grid order partitions the dataspace into $l^d$ rectangular cells where
 l is number of segments per dimension of the grid. Two points $p_m <
@@ -787,8 +850,12 @@ mentioned above the major drawback is that calculating PCA and fory
 large datasets is not a feasible solution for a large dataset. There
 is no study of effect of approximate PCA on the results.
 
+\medskip
+
 One another performance reducer of this algorithm in large dataset is that sort
 of the whole dataset.
+
+\medskip
 
 This paper also suffers from the same problem as
 \cite{yu_efficient_2007} with regards to its probable adoption to
@@ -817,6 +884,8 @@ tree for each S Partition. R tree gives a very good performance for
 lower dimensions and it has been used highly effective for lower
 dimension \cite{kuan_fast_1997} but for higher dimensions the
 performance is almost as bad as a linear scan.
+
+\medskip
 
 The complexity of the BRJ algorithm is $O(n|S|log(|S|/n) + n|R|\sqrt{|S|/n})$
 Though this is better than the BLNJ,
@@ -856,6 +925,8 @@ faster than other algorithms in map reduce framework
 \cite{stupar_rankreduceprocessing_2010}. Also unlike BRJ algorithm it
 does not require $n^2$ reducers but only n reducers.
 
+\medskip
+
 Some of the drawbacks of this algorithm evaluated in
 \cite{song_solutions_2015} are
 \begin{enumerate}
@@ -879,6 +950,8 @@ Some of the drawbacks of this algorithm evaluated in
 During the same time another study
 \cite{stupar_rankreduceprocessing_2010} also focused on getting
 approximate KNN Join results in map reduce framework.
+
+\medskip
 
 This algorithm implements the Distributed Locality Sensitive Hashing (LSH)
 based index within Mapreduce framework. LSH uses Locality sensitive
@@ -931,12 +1004,16 @@ compare with \cite{zhang_efficient_2012}. On the other hand the
 evaluation by \cite{song_solutions_2015} shows that though
 \cite{zhang_efficient_2012} has better performance than
 \cite{stupar_rankreduceprocessing_2010}, it has lower accuracy.
+
 \bigskip
+
 \subsection{Analysis: Voronoi Partition}
 Though mapreduce framework has been around for nearly 10 years, there
 is only one KNN Join algorithm \cite{lu_efficient_2012} which is
 optimized for the mapreduce framework and that provides accurate
 results.
+
+\medskip
 
 This algorithm is based on voronoi partition. The algorithm is
 divided into 4 Phases
@@ -960,6 +1037,8 @@ investigates on three different ways to select the pivots.
 \item K Means Selection
 \end{enumerate}
 
+\medskip
+
 Farthest Selection is worthless in every aspect of performance and
 selectivity. Though K Means selection results in better selectivity of partition
 and therefore faster computation in Phase 3 and 4, preprocessing time
@@ -981,10 +1060,14 @@ Data partitioning phase has two objectives.
   Nearest Neighbours of pivots and their distance
 \end{enumerate}
 
+\medskip
+
 The computation cost of this phase is $O(|S|*n + |R|*n)$ where n is
 the number of pivots. Higher the number of pivots results in longer
 data partitioning phase but results in smaller partition. Smaller
 parition will be easier to compute the KNN for a partition.
+
+\medskip
 
 There is a scope for improving ther performance of this phase by
 leveraging either iDistance indexing \cite{jagadish_idistance:_2005}
@@ -1017,6 +1100,8 @@ performance of this algorithm.
 In Join Reduce phase, each reducer gets all points from $R_i$ and all
 probable points from S. Now we compute the plain KNN for partition
 $R_i$.
+
+\medskip
 
 This algorithm performs better than BNLJ or BRJ.
 
