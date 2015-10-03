@@ -615,7 +615,7 @@ petabyte scale. Figure ~\ref{fig:hadooparch} from \cite{_hadoop_mr_arch} gives a
 mapreduce.
 
 \begin{figure}[here]
-\includegraphics[width=0.4\textwidth]{hadooparch.jpg}
+\includegraphics[width=0.5\textwidth]{hadooparch.jpg}
 \caption{Hadoop Mapreduce Framework}
 \label{fig:hadooparch}
 \end{figure}
@@ -626,26 +626,39 @@ This model basically has two phase
 \item Reduce phase
 \end{enumerate}
 
-Map phase takes the partitioned input data and converts it into tuples (key value
-pairs). There can an optional combiner in the map phase as well. This
-is to reduce number of shuffle bytes. This is important because the
+The input data is partitioned based on fixed size by the mapreduce
+framework and each partitioned
+data is fed to the Map phase. In Map phase the partitioned input data
+is converted into tuples (key value
+pairs). This data is written to distributed filesystem.
+There can an optional combiner in the map phase as well. This
+is to reduce number of bytes written and hence the number of shuffle
+bytes. This is important because the
 primary focus on distributed processing nowadays is to preserve
 network bandwidth.
 
 \medskip
 
-Reduce phase takes output of map phase and reduces to final
-output. The framework also takes care of the following
+The mapreduce framework before feeding the output of map phase to
+reduce does the following
 \begin{enumerate}
 \item shuffle bytes from map to reducuer
 \item Sort all data with the same key
 \end{enumerate}
 
+Reduce phase processes each key along with all its values. It
+processes the key and values and reduces to final
+output and it is written to the distributed filesystem as well.
+That inturn can be fed to another mapreduce job. It is called
+chaining. It is normal to chain many mapreduce job in succession.
+
+\bigskip
+
 \subsection{Spark}
 Spark is an opensource framework for cluster computing developed in
 AMPLab at UCBerkeley. It is a generic framework for any large scale
-data processing. One of the main idea in spark's design is that most
-dataset can fit into RAM. Leveraging this, spark's in memory primitive
+data processing. One of the main idea in spark's design is to leverage
+the amount of RAM available across nodes for computing. Leveraging this, spark's in memory primitive
 makes it 10 to 100 times faster than hadoop mapreduce.
 
 \medskip
@@ -660,16 +673,15 @@ is in memory the performance is much faster than Hadoop Mapreduce.
 
 \subsection{Algorithm Design Requirements}
 
-Since these framework are very specific, it is imperative that the
-algorithm should be designed to be implemented in one of these
-frameworks. Not all algorithms could be readily run on these
-frameworks. To design an efficient algorithms for these framworks,
+Though these framework are very generic, you cannot run any algorithm
+readily in these frameworks. To design an efficient algorithms for these framworks,
 Some of the factors to be considered are
 
 \medskip
 
 \begin{enumerate}
-\item Algorithm has to divide data into partitions and handle the separately
+\item Algorithm has to divide data into partitions and handle each partition
+  separately
 \item There can be common data that can be shared among all the nodes
   but it has to be small
 \item Amount of data replication should be minimised. This reduces
@@ -748,7 +760,8 @@ Steps for querying Nearest Neighbours for point q are
 \bigskip
 The advantage of this algorithm is that it can be used for both
 approximate and accurate calculations by controlling the query
-distance $\delta{x}$.
+distance $\delta{x}$. Also for a small dataset which can fit to a node
+we can calculate point queries very fast.
 
 Some of the drawbacks for this algorithm are
 \begin{enumerate}
@@ -757,20 +770,21 @@ Some of the drawbacks for this algorithm are
 distance calculation of P1 for P2
 \item For a large dataset calculating the pivots using clustering algorithm are
   computationally intensive themselves
-\item Cannot be used in Mapreduce or Spark readily. The main reason being this
-  was designed before the age of big data.
+\item Cannot be used in Mapreduce or Spark readily as creating an
+  index in a distributed data is challenging.
 \end{enumerate}
 
 \bigskip
 
 \subsection{Analysis: iJoin}
-In \cite{yu_efficient_2007}, the authors worked on improving
-\cite{jagadish_idistance:_2005}. They solved the drawback 1 stated
-above with their algorithm called iJoin. In this method they the
-partitioned both R and S dataset and using same pivots and
-calculating the probable partition for neighbours in S is found for each
-partition of R rather than each point in R. This reduced the
-computational complexity to a great extent.
+In \cite{yu_efficient_2007}, the authors worked on improving iDistance queries
+\cite{jagadish_idistance:_2005}. They have worked on an improvement for the drawback 1 stated
+above with their algorithm called iJoin. In this method they have
+partitioned both R and S dataset based on few fixed points called
+pivots. Since they partition both R and S dataset based on the same
+pivots, we can compute nearby partition for $R_i$ in $S$. By this we
+can effectively prune other partitions that are far away. This helps
+in reducing the computational complexity to a great extent.
 
 \bigskip
 
@@ -778,25 +792,31 @@ The authors also propose two optimisation and they call it as iJoinAC
 and iJoinDR. These two optimisations are primarily to reduce the
 number of floating point calculations done if the number of dimensions
 are very high, in the order of 1000s. In iJoinAC each datapoint in R
-and S are represented by an approximate bounding cube. The iDistance
-index is calculated for the bounding cube and when traversal is done
-the calculation is simpler and filter out most false answers before we
-access the real vectors. The fig ~\ref{fig:iJoinAC} is taken from the original
+and S are represented by an approximate bounding cube which are
+integers vectors rather than the floating point vectors. The iDistance
+is calculated for the bounding cube and when traversal is done to find
+nearest neighbours. Since they are integers the calculation is simpler
+and faster. We only access the real floating point vectors once we have reached the
+right bounding cube where we are expected to find the nearest
+neighbours. The fig ~\ref{fig:iJoinAC} is taken from the original
 paper itself.
 
 \begin{figure}[here]
-\includegraphics[width=0.4\textwidth]{iJoinAC.png}
+\includegraphics[width=0.5\textwidth]{iJoinAC.png}
 \caption{iDistance structure with approximate cube}
 \label{fig:iJoinAC}
 \end{figure}
 
-In iJoinDR, the dimensions are reduced by applying PCA for the vectors
-and choosing the few dimensions. The resulting low dimension vectors
+In iJoinDR, the dimensions are reduced by applying PCA for the
+vectors and selecting the few dimensions where there are maximum
+variability. The resulting low dimension vectors
 are used for constructing the iDistance index. For example a well
 known PCA algorithm called SVD has a computational complexity of
 $O(N * d^2)$ where N is the number of datapoints and d number of
 dimensions.
+
 \bigskip
+
 As its predecessor, the algorithm is not designed for distributed
 datasets. The use of PCA in iJoinDR requires a significant increase in
 computation if the dataset is huge. There is no study being done on
@@ -806,14 +826,18 @@ PCA.
 
 \medskip
 
-Since the algorithm relies heavily on random IO access due to
-indexing, adopting the algo to the hadoop mapreduce framework will
-difficult because of its sequential design.
+Creating an index for a distributed dataset is very challenging in
+mapreduce framework. Since the mapreduce framework relies heavily on
+sequential access of data it is very difficult to adapt this
+algorithm to the framework.
 
 \medskip
 
-There is no easy way to use spark readily for creating indexed
-data. Hence this algorithm cannot be readily adapted to spark.
+Likewise, There is no easy way to use spark readily for creating
+indexes for the dataset. Hence this algorithm cannot be readily
+adapted to spark. There are few improvements in spark that is
+currently underway to create a indexed RDD but it is not yet
+immediately available.
 
 \bigskip
 
@@ -846,20 +870,20 @@ In GORDER algorithm, there are two phases
 
 Their approach to solve the high dimensionality problem is
 by applying Principal Component Analysis to reduce the dimensions. As
-mentioned above the major drawback is that calculating PCA and fory
-large datasets is not a feasible solution for a large dataset. There
-is no study of effect of approximate PCA on the results.
+mentioned above the major drawback is calcuating PCA for
+large datasets is itself a resource and time intensive. There
+is no study of effect of approximate PCA on the overall KNN Join results.
 
 \medskip
 
-One another performance reducer of this algorithm in large dataset is that sort
-of the whole dataset.
+This algorithm also relies heavily on global sorting of the dataset
+which in itself can be quite network bandwidth intensive.
 
 \medskip
 
 This paper also suffers from the same problem as
 \cite{yu_efficient_2007} with regards to its probable adoption to
-mapreduce framework.
+mapreduce framework and Spark.
 
 \bigskip
 \subsection{Analysis: zKNN}
@@ -883,7 +907,8 @@ tree index (BRJ). This improves over the Block Nested Loop Join by using R
 tree for each S Partition. R tree gives a very good performance for
 lower dimensions and it has been used highly effective for lower
 dimension \cite{kuan_fast_1997} but for higher dimensions the
-performance is almost as bad as a linear scan.
+performance is almost as bad as a linear scan. R tree is computed once
+and stored and it is reloaded everytime it is needed per partition.
 
 \medskip
 
@@ -901,7 +926,7 @@ curves. It was initially described for relational databases in \cite{yao_k_2010}
 The fig is taken from \cite{song_solutions_2015}
 
 \begin{figure}[here]
-\includegraphics[width=0.4\textwidth]{zknn.png}
+\includegraphics[width=0.5\textwidth]{zknn.png}
 \caption{zvalue based partitioning}
 \label{fig:zknn.png}
 \end{figure}
@@ -914,7 +939,6 @@ In zKNN algorithm has the following steps
   curves.
 \item Sort and Partition the data in R and S such that the Ri and Si
   has same partition and is sent to same reducers.
-\item
 \end{enumerate}
 
 \bigskip
@@ -945,6 +969,11 @@ Some of the drawbacks of this algorithm evaluated in
 
 \bigskip
 
+Since this algorithm is designed with mapreduce in mind. It should be
+easier to adapt the algorithm to spark framework. But there are few
+gaps that can be worked on to make this algorithm still faster,
+efficient and scalable.
+
 \subsection{Analysis: Rankreduce}
 
 During the same time another study
@@ -972,7 +1001,7 @@ High level steps for this algorithm is
 
 
 \begin{figure}[here]
-\includegraphics[width=0.4\textwidth]{rankreduce.png}
+\includegraphics[width=0.5\textwidth]{rankreduce.png}
 \caption{RankReduce Framework}
 \label{fig:rankreduce.png}
 \end{figure}
@@ -1004,6 +1033,10 @@ compare with \cite{zhang_efficient_2012}. On the other hand the
 evaluation by \cite{song_solutions_2015} shows that though
 \cite{zhang_efficient_2012} has better performance than
 \cite{stupar_rankreduceprocessing_2010}, it has lower accuracy.
+
+This algorithm can be adapted for spark framework with ease. But with
+all the unanswered questions above there is lots of scope of work in
+both mapreduce and spark.
 
 \bigskip
 
@@ -1105,6 +1138,25 @@ $R_i$.
 
 This algorithm performs better than BNLJ or BRJ.
 
+\bigskip
+
+There are lots of scope for improvement in this algorithm.
+\begin{enumerate}
+\item Create pivots based on S dataset rather than R. Practically, S
+  dataset is found to be much stable than R.
+\item Perform a Self join with the same partition. This is to leverage
+  the general observation that most Nearest neighbours will be within
+  the same partition. Only the points near the edge of the partition
+  will have Neighbours present in other partition
+\item Replicate the data at the edge of the partition into multiple
+  partition. This will help self join give a better performance
+\item Create an index at each partition so that finding neighbours
+  within the partition is faster
+\end{enumerate}
+
+Implementation in spark framework with the above gaps addressed can
+result in significant performance improvement.
+
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
 % For figures, \caption should occur after the \includegraphics.
@@ -1203,10 +1255,23 @@ This algorithm performs better than BNLJ or BRJ.
 
 \section{Conclusion}
 
-Though there are few algorithms which are implemented in mapreduce
-framework, they are far from efficient for a large dataset. And
-moreover they are not designed for efficient network bandwidth
-utilisation. None of the algorithm is designed for spark framework.
+There are lots of papers focussing both on Index based approach or
+Partition based approach. Though Index based approach looks promising
+in lower dimension, it fails to perform well
+at higher dimension. Partition based approach has been used
+predominantly in distributed algorithms. This is mainly because this
+easily provides parallelism which is main factor for distributed
+computing. There is no work which assessed usage of both index and
+partition based approarch in tandem for distributed system.
+
+\bigskip
+
+Though mapreduce has dominated the last decade there is only few algorithms which are implemented in mapreduce
+framework. But they are far from efficient in terms of network
+bandwidth and disk IO for a large dataset. But as far as spark
+framework is concerned there are no work so far.
+
+\bigskip
 
 % trigger a \newpage just before the given reference
 % number - used to balance the columns on the last page
