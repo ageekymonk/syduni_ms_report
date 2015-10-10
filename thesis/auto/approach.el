@@ -10,6 +10,8 @@
     "IEEEtran"
     "IEEEtran10"
     "graphicx"
+    "tikz"
+    "pgfplots"
     "amssymb"
     "algorithmic"
     "algorithm")

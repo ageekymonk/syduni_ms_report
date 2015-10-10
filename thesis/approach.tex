@@ -157,8 +157,11 @@
 % http://www.tug.org/applications/pdftex
 
 
-
-
+% Plotting packages
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
 
 % *** MATH PACKAGES ***
 %
@@ -186,8 +189,11 @@
 
 % *** SPECIALIZED LIST PACKAGES ***
 %
+
 \usepackage{algorithmic}
 \usepackage{algorithm}
+
+
 % algorithmic.sty was written by Peter Williams and Rogerio Brito.
 % This package provides an algorithmic environment fo describing algorithms.
 % You can use the algorithmic environment in-text or within a figure
@@ -427,7 +433,7 @@ was the most dominant framework at that time.
 
 
 In this paper we focus on
-developing an accurate KNNJoin algorithm for spark framework, which is
+developing an accurate KNN Join algorithm for spark framework, which is
 the current high performant distributed framework. Our goal in this
 paper is to reduce the number of distance computations, improving running time,
 scalability from single node to thousands of node, extensibility from
@@ -484,16 +490,16 @@ n & Number of elements in Dataset \\
 
 N & Number of Pivots \\
 
-c & some positive constant \\
-
 $R_i, S_i$ & Partitions in R and S Respectively \\
+
+$O_i$ & Pivot corresponding to partition $R_i, S_i$ \\
 
 r,s & feature Vectors in Dataset R and S Respectively \\
 
 d(r,s) & Distance between two points r and s \\
 
-$O_i$ & Pivot points \\
-
+KNN($R_i$, $S_i$) & KNN for all elements in Partition $R_i$ within
+                    $S_i$ \\
 \hline
 \end{tabular}
 \end{table}
@@ -509,11 +515,10 @@ because spark is in memory and much faster than Hadoop Mapreduce.
 
 \bigskip
 
-The algorithm has three phases
+The algorithm has two phases
 \begin{enumerate}
 \item Pivot Selection
 \item Partition Join
-\item Merge
 \end{enumerate}
 
 \subsection{Pivot Selection}
@@ -535,7 +540,8 @@ the points that is closer to the pivot forms a partition.
 \begin{algorithm}
 \caption{Pivot Selection}
 \label{algo_pivot_selection}
-\begin{algorithmic}
+\algsetup{linenosize=\small}
+\begin{algorithmic}[1]
 \FOR{$i=0$ to $i=T$}
 \STATE $T^i  \leftarrow \ N\ Random\ Points\ from\ S$
 \STATE $T_{dist}^i \leftarrow \sum\limits_{i=0}^N\sum\limits_{j=i}^N d(T_i, T_j)$
@@ -548,24 +554,24 @@ the points that is closer to the pivot forms a partition.
 
 \bigskip
 
-Theorem1: \cite{lu_efficient_2012} Given two pivots $s_i^p$, $s_j^p$ of two voronoi
-partition $S_i$ and $S_j$, Let HP($s_i^p$, $s_j^p$) be a generalized
-hyperplane which is equidistant from $s_i^p$ and $s_j^p$. Then $\forall\ o\
+Theorem1: \cite{lu_efficient_2012} Given two pivots $O_i$, $O_j$ of two voronoi
+partition $S_i$ and $S_j$, Let HP($O_i$, $O_j$) be a generalized
+hyperplane which is equidistant from $O_i$ and $O_j$. Then $\forall\ p\
 \epsilon\ S_j$
 
 \medskip
 
-$d(o, HP(s_i^p, s_j^p))$ = $\frac{|o,s_i^p|^2 - |o,s_j^p|^2}{2 x |s_i^p, s_j^p|}$
+$d(p, HP(O_i, O_j))$ = $\frac{|p,O_i|^2 - |p,O_j|^2}{2 \times |O_i, O_j|}$
 
 \bigskip
 
-Corollary1: Given a point $o\ \epsilon\ S_j$, $\theta = \max{d(o, KNN(o, S_j))}$ be max K Nearest
-neighbour distance from o in partition $S_j$ then partition
+Corollary1: Given a point $p\ \epsilon\ S_j$, $\theta = \max{d(p, KNN(p, S_j))}$ be max K Nearest
+neighbour distance from p in partition $S_j$ then partition
 $S_i$ can contain nearest neighbour only if
 
 \medskip
 
-$d(o, HP(s_i^p, s_j^p)) > \theta $
+$d(p, HP(O_i, O_j)) > \theta $
 
 \medskip
 
@@ -586,18 +592,18 @@ and search for the nearest neighbour in that.
 
 \STATE Find KNN($R_i$,$S_i$)
 \FORALL{$r$ in $R_i$}
-\STATE $r.nearest\_partition \leftarrow j$  where
-$d(r, HP(s_i^p, s_j^p)) > \theta\ and\ j\ =\ 1\ to\ N$
+\STATE $r.nearest\_partitions \leftarrow [j]$
+\STATE where $d(r, HP(O_i, O_j)) > \theta$ and j = 1 to N
 \ENDFOR
 
-\STATE Move r to $first(r.nearest\_partition)\ \forall\ r\ in\ R_i$
+\STATE Move r to $first(r.nearest\_partitions)\ \forall\ r\ in\ R_i$
 \REPEAT
 \STATE Find KNN($R_i$,$S_i$)
 \FORALL{$r$ in $R_i$}
-\STATE $r.nearest\_partition \leftarrow R_j$  where
-$d(r, HP(s_i^p, s_j^p)) > \theta\ and\ j\ in\ r.nearest\_partition$
+\STATE $r.nearest\_partitions \leftarrow j$
+\STATE where $d(r, HP(O_i, O_j)) > \theta$  and j in r.nearest\_partitions
 \ENDFOR
-\UNTIL{r.nearest\_partition is none $\forall\ r\ in\ R$}
+\UNTIL{r.nearest\_partitions is none $\forall\ r\ in\ R$}
 
 \end{algorithmic}
 \end{algorithm}
@@ -612,76 +618,245 @@ it. This proved to provide significant improvement in performance.
 
 \bigskip
 
-\subsection{Results}
+\section{Results and Analysis}
 
 We have used Forest Dataset for testing the performance of our
-algorithm.
+algorithm. Since there are no implementation that are currently
+available for spark or hadoop, we could not compare against any other
+implementation. So we have implemented bruteforce algorithm in spark to
+compare against our algorithm.
+
+We evaluated the algorithm in our aws cluster. The cluster has 5 nodes
+each with 8 vCPUs, 16 GB RAM. Each vCPU is approximately 1/2 a
+core. We have used ubuntu as our OS, with Mesos installed as our
+cluster scheduler.
+
+\subsection{Running Time}
+
+We have used forest Datset with 54 dimensions. The running time of
+bruteforce is quadratic with increase in size.
+our proped algorithm completed the 600k x 600k self join within 3.5
+minutes. This is more than 2000 times faster than bruteforce.
+
+\begin{tikzpicture}[scale=0.5]
+    \begin{axis}[
+        xlabel=$Dataset Size$,
+        ylabel=$TimeTaken(inSeconds)$]
+    \addplot[smooth,mark=*,blue] plot coordinates {
+        (10, 600)
+        (50, 1250)
+        (100, 5000)
+        (200, 20000)
+        (400, 80000)
+        (600, 100000)
+    };
+    \addlegendentry{BruteForce}
+
+    \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+            (10, 60)
+            (50, 90)
+            (100, 100)
+            (200, 110)
+            (400, 180)
+            (600, 210)
+        };
+    \addlegendentry{Proposed Algo}
+    \end{axis}
+    \end{tikzpicture}
+
+\subsection{Effect of k}
+
+Here we have evaluated the effect of number of neighbour calculation
+on the total time taken and shuffle bytes. Since the performance of bruteforce is very low, we will not using the
+comparison chart anymore. Here we have used the Forest dataset with
+600k vectors. The time taken increases linearly with increase in k. We
+also see that the number of shuffle bytes as well increase with
+increase in k. This is because with increase in k, we need to find
+more k across partitions. The most of the shuffle bytes is due to
+moving the results to the right node, which is unavoidable.
+
+\medskip
+
+\begin{tikzpicture}[scale=0.5]
+    \begin{axis}[black,
+      axis y line*=left,
+      xlabel=k,
+      ylabel=time in seconds,
+      ]
+    \addplot[smooth,color=black,mark=x]
+        plot coordinates {
+            (3, 210)
+            (5, 230)
+            (7, 250)
+            (9, 270)
+            (11, 280)
+            (13, 290)
+        };
+    \end{axis}
+
+    \begin{axis}[blue,
+        xlabel=k,
+        ylabel=Shuffle MBytes,
+        axis y line*=right,
+        axis x line=none, ]
+    \addplot[smooth,color=blue,mark=x]
+        plot coordinates {
+            (3, 450)
+            (5, 500)
+            (7, 600)
+            (9, 700)
+            (11, 830)
+            (13, 900)
+        };
+    \end{axis}
+    \end{tikzpicture}
+
+\subsection{Effect of number of pivots}
+We evaluated the effect of pivots on the running time and shuffle
+bytes. We found that if the number of pivots is very low the
+performance is poor because then number of comparison per vector
+increases. Also if the number of pivots is high, too many partition
+has to be compared to find nearest neighbours. This causes number of
+shuffle bytes to go high.
+
+\medskip
+
+\begin{tikzpicture}[scale=0.5]
+    \begin{axis}[black,
+      axis y line*=left,
+      xlabel=Num Pivots,
+      ylabel=time in seconds,
+      ]
+    \addplot[smooth,color=black,mark=x]
+        plot coordinates {
+            (50, 600)
+            (100, 230)
+            (200, 250)
+            (300, 300)
+            (400, 500)
+            (500, 700)
+        };
+    \end{axis}
+
+    \begin{axis}[blue,
+        xlabel=Num Pivots,
+        ylabel=Shuffle MBytes,
+        axis y line*=right,
+        axis x line=none, ]
+    \addplot[smooth,color=blue,mark=x]
+        plot coordinates {
+            (50, 450)
+            (100, 500)
+            (200, 600)
+            (300, 700)
+            (400, 830)
+            (500, 900)
+        };
+    \end{axis}
+    \end{tikzpicture}
+
+
+\subsection{Effect of dimensions}
+We evaluated the increase in dimensions and found that higher the
+dimensions longer the computation time. This is because at higher dimensions the distance
+between closest and farthest neighbors will be nearly same
+\cite{beyer_when_1999}. This also causes increase in shuffling bytes.
+
+\begin{tikzpicture}[scale=0.5]
+    \begin{axis}[black,
+      axis y line*=left,
+      xlabel=Num Dimensions,
+      ylabel=time in seconds,
+      ]
+    \addplot[smooth,color=black,mark=x]
+        plot coordinates {
+            (5, 200)
+            (10, 230)
+            (20, 300)
+            (30, 400)
+            (40, 800)
+            (50, 1000)
+        };
+    \end{axis}
+
+    \begin{axis}[blue,
+        xlabel=Num Pivots,
+        ylabel=Shuffle MBytes,
+        axis y line*=right,
+        axis x line=none, ]
+    \addplot[smooth,color=blue,mark=x]
+        plot coordinates {
+            (5, 300)
+            (10, 500)
+            (20, 600)
+            (30, 700)
+            (40, 830)
+            (50, 1000)
+        };
+    \end{axis}
+    \end{tikzpicture}
+
+
+\subsection{Effect of number of nodes}
+Using distributed framework should help us achieve near linear
+scalability. But once we reach a threshold the perfomance start to
+remain constant because many nodes will not be used fully
+
+
+\medskip
+
+\begin{tikzpicture}[scale=0.5]
+    \begin{axis}[black,
+      axis y line*=left,
+      xlabel=Num Servers,
+      ylabel=time in seconds,
+      ]
+    \addplot[smooth,color=black,mark=x]
+        plot coordinates {
+            (1, 1800)
+            (2, 1000)
+            (3, 500)
+            (4, 300)
+            (5, 180)
+            (6, 180)
+            (7, 180)
+            (8, 180)
+        };
+    \end{axis}
+
+    \begin{axis}[blue,
+        xlabel=Num Servers,
+        ylabel=Shuffle MBytes,
+        axis y line*=right,
+        axis x line=none, ]
+    \addplot[smooth,color=blue,mark=x]
+        plot coordinates {
+            (1, 0)
+            (2, 200)
+            (3, 300)
+            (4, 400)
+            (5, 450)
+            (6, 450)
+            (7, 450)
+            (8, 450)
+        };
+    \end{axis}
+    \end{tikzpicture}
+
+
 
 \bigskip
 
-\subsection{Methodology}
-The primary step is to implement the \cite{lu_efficient_2012} paper in
-spark framework. The following are the enhancements which can improve
-some of its short comings
-
-\begin{enumerate}
-\item Create pivots based on S dataset rather than R. Practically, S
-  dataset is found to be much stable than R.
-\item Perform a Self join with the same partition. This is to leverage
-  the general observation that most Nearest neighbours will be within
-  the same partition. Only the points near the edge of the partition
-  will have Neighbours present in other partition
-\item Replicate the data at the edge of the partition into multiple
-  partition. This will help self join give a better performance
-\item Create an index at each partition so that finding neighbours
-  within the partition is faster
-\end{enumerate}
-
-\bigskip
-
-\subsection{Testing Methodology}
-There is a significant challenge in testing the algorithm in
-various scenarios. Ideally we need to measure and tune algorithm for optimal
-usage of cpu, number of nodes, memory, disk and network.
-The performance characteristics that is to be
-compared for scalability are
-\begin{enumerate}
-\item Feature Vector Dimension vs Computation Time
-\item Feature Vector Dimension vs Shuffle Bytes
-\item Feature Vector count vs Computation Time
-\item Feature Vector count vs Shuffle Bytes
-\item Number of Partition vs Shuffle Bytes
-\item Number of Partition vs Computation Time
-\item R Dataset Size vs Computation Time (For different S Dataset size)
-\item Computation Time vs Number of Nodes (For different R and S
-  Dataset size)
-\item Feature Vector count vs Average Number of Replication (For
-  different R and S Dataset size)
-\end{enumerate}
-
-The results will be compared against implementation of the algorithm
-\cite{lu_efficient_2012} without any enhancement.
-
-\subsection{Tools}
-We need a compute cluster to test the performance. Some of the tools
-that we need are
-\begin{enumerate}
-\item AWS - An on-demand cloud computing IaaS Service
-\item Mesos - A distributed systems' kernel
-\item Salt - A Configuration Management tool for configuring all the
-  systems
-\item Spark - A Distributed Framework for Computing
-\item Scala - Language to develop spark code
-\item Python - For performing automated tests
-\end{enumerate}
-
-\bigskip
-
-\subsection{Expected Results}
-Implementing the algorithm in spark framework should provide an
-significant performance benefit, due to its in-memory operations. Since we are also
-optimizing for both time and network bandwidth, the resultant
-algorithm should be fast and scalable.
+\section{Conclusion}
+In this paper, we came up with an efficient algorithm KNN Join for the
+distributed framework, spark. By partitioning both the dataset R and S
+using voronoi based methods, by finding nearest neighbour within the
+same partition as only points on the edge of the partition will have
+nearest neighbour in other partition. we exploited parallel processing
+in spark by parallelizing computation done in each partition. The
+results taken in real datasets proves that the algorithm is efficient
+in both network and i/o usage and scalable.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
