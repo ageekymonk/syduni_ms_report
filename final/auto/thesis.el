@@ -45,12 +45,14 @@
     "rotating"
     "setspace"
     "style/bib"
-    "subfigure"
     "tabularx"
     "tipa"
     "wrapfig"
     "xcolor"
     "xspace"
+    "caption"
+    "subcaption"
+    "cleveref"
     "tikz"
     "pgfplots")
    (TeX-add-symbols

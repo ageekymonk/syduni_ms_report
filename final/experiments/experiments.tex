@@ -2,23 +2,26 @@
 
 We evaluated our algorithm by building an adhoc cluster in AWS. We
 have used Mesos as our resource manager for our cluster. Our compute
-cluster has one mesos master node. This also runs a spark history
-server. This node is not used for any computation. This node is
-primarily to monitor slave node and do resource scheduling. We have ten slave
-nodes where all the computation happens. Each slave node has
+cluster has one mesos master node which is used
+primarily to monitor slave nodes and do resource scheduling.
+It also runs a spark history server. This node is not used for any computation.
+We have ten slave nodes where all the computation happens. Each slave node has
 8 vCPUs, 64 GB RAM and 160 GB Hard disk. The master node has 8 vCPUs,
 16GB RAM and 160 GB Hard disk. Each vCPU is approximately 1/2 a
 core. vCPU is unit used by AWS. All the nodes are running ubuntu as
 base OS.
 
-We performed experiments on two real datasets.
+We performed experiments on two real datasets. We have run all our
+experiments on both the datasets. We have found that the results are
+consistent on both the datasets for all our experiments.
+
 \begin{enumerate}
 \item \textbf{Higgs Dataset:}
 Higgs Dataset contains 28 features. These features are kinematic
 properties measured by the particle detectors in the
 accelerator. Classes are signal process which produces Higgs boson and
 background process which does not. The dataset contains 11 Million
-vectors with classes.
+vectors with classes. The total size of the dataset file is 7.7 GB
 
 \item \textbf{Forest Dataset:}
 Forest Dataset is a real dataset which predicts the cover type of
@@ -26,17 +29,18 @@ forest from cartographic variables. It has 6 different classes. Each
 vector has 54 attributes. Out of 54 only the first 10 are integer
 attributes and rest are binary. we have used only first 10 attributes
 in our tests. The dataset is relatively small and contains only 580K
-vectors with classes.
+vectors with classes. The total size of the datset file is 80 MB
 \end{enumerate}
 
+We will compare the results of our algorithm with brute force
+algorithm. There are no known implementation available for spark and
+there are no working implementation of any algorithm for any other
+distributed framework. Due to this we study our algorithm performance
+against bruteforce only.
 
-Since there are no available implementation available in spark, the
-only benchmark we can compare against is brute force algorithm. So we
-have implemented the bruteforce algorithm in spark leveraging the
-parallel computation.
-
-In our experiments we analysed the effect of the following variables on the
-overall runtime and shuffle data
+\begin{minipage}{\linewidth}
+In our experiments we have analysed the effect of the following variables on the
+overall runtime, shuffle data and RAM utilization
 \begin{enumerate}
 \item Size of the dataset
 \item Number of Neighbours (k)
@@ -44,58 +48,104 @@ overall runtime and shuffle data
 \item Number of compute Nodes
 \item Number of dimensions
 \end{enumerate}
-
+\end{minipage}
 
 \section{Effect of size of dataset}
 
-We have studied the effect of size of the dataset on overall running
+In this section we will study the effect of size of the dataset on overall running
 time. We have compared the results against bruteforce algorithm.
-We have used Higgs Dataset with 6 dimensions. Below figure shows how
-the running time varies when the dataset increases.
+We have used Higgs Dataset with 6 dimensions. In this experiment we
+have utilized the entire ten node cluster for both bruteforce and our
+algorithm.
 
-From the graph we can see that as the dataset doubles the running time
-increases quadratically. Our proposed algorithm
-completed the 1 Million x 1 Million self join
+Fig \cref{fig_effect_of_dataset_size_1} shows how
+the running time varies when the dataset increases.
+Our proposed algorithm completed the 1 Million vector self join
 in 2.2 minutes where as the brute force algorithm took about 3.9
 hours. We are getting approximately 100 times faster even with the small
-dataset. With the larger datasets like 11 Million x 11 Million, our
-algorithm completed within 26 minutes. We did not run the bruteforce
+dataset.As the dataset size increases to 11 Million vectors, our
+algorithm completed within 26 minutes.For brute force algorithm we can see that as the dataset doubles the running time
+increases quadratically.  Due to this, we did not run the bruteforce
 algorithm in such a large dataset as time taken will be too long. But
-based on the quadratic increase we have seen, our algorithm will be in comparison with
-brute force about 800 to 1000 times faster.
+based on the quadratic increase we have seen as we double the data, our algorithm will be in comparison with
+brute force about 800 to 1000 times faster for 11 Million x 11 Million.
+
+Fig \cref{fig_effect_of_dataset_size_2} shows how the
 
 \bigskip
 
-\begin{tikzpicture}[scale=1.0]
-  \begin{axis}[
-    xlabel=$Dataset Size(in\ Million)$,
-    scaled x ticks = false,
-    scaled y ticks = false,
-    xmin=0, xmax=12,
-    ylabel=$Time\ Taken\ (in\ Seconds)$]
-    \addplot[smooth,mark=*,blue] plot coordinates {
-      (0.5, 2700)
-      (1, 14040)
-    };
-    \addlegendentry{BruteForce}
+\begin{figure*}[t!]
+  \begin{subfigure}[t]{0.5\textwidth}
+    \begin{tikzpicture}[scale=0.75]
+      \begin{axis}[
+        xlabel=$Dataset Size(in\ Million)$,
+        scaled x ticks = false,
+        scaled y ticks = false,
+        xmin=0, xmax=12,
+        ylabel=$Time\ Taken\ (in\ Seconds)$]
+        \addplot[smooth,mark=*,blue] plot coordinates {
+          (0.5, 2700)
+          (1, 14040)
+        };
+        \addlegendentry{BruteForce}
 
-    \addplot[smooth,color=red,mark=x]
-    plot coordinates {
-      (0.5, 108)
-      (1, 132)
-      (1.500, 168)
-      (2.000, 246)
-      (3.000, 270)
-      (4.000, 372)
-      (5.000, 558)
-      (7.000, 900)
-      (9.000, 1200)
-      (11.000, 1560)
-    };
-    \addlegendentry{Proposed Algo}
-  \end{axis}
-\end{tikzpicture}
+        \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+          (0.5, 108)
+          (1, 132)
+          (1.500, 168)
+          (2.000, 246)
+          (3.000, 270)
+          (4.000, 372)
+          (5.000, 558)
+          (7.000, 900)
+          (9.000, 1200)
+          (11.000, 1560)
+        };
+        \addlegendentry{Proposed Algo}
+      \end{axis}
+    \end{tikzpicture}
+    \caption{on total runtime}
+    \label{fig_effect_of_dataset_size_1}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[t]{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.75]
+    \begin{axis}[
+      xlabel=$Dataset Size(in\ Million)$,
+      scaled x ticks = false,
+      scaled y ticks = false,
+      xmin=0, xmax=12,
+      ymin=0, ymax=60,
+      ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
+      \addplot[smooth,mark=*,blue] plot coordinates {
+        (0.5, 4.5)
+        (1, 22)
+      };
+      \addlegendentry{BruteForce}
 
+      \addplot[smooth,color=red,mark=x]
+      plot coordinates {
+        (0.5, 1)
+        (1, 2.2)
+        (1.500, 3.6)
+        (2.000, 4.9)
+        (3.000, 10.1)
+        (4.000, 14.1)
+        (5.000, 18.5)
+        (7.000, 26.8)
+        (9.000, 36.0)
+        (11.000, 44.0)
+      };
+      \addlegendentry{Proposed Algo}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{on shuffle bytes}
+  \label{fig_effect_of_dataset_size_2}
+  \end{subfigure}
+  \caption{Effect of dataset size}
+  \label{fig_effect_of_dataset_size}
+\end{figure*}
 \section{Effect of k}
 
 Here we have evaluated the effect of number of neighbour calculation
