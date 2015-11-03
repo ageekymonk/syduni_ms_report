@@ -1,0 +1,17 @@
+\begin{thebibliography}{2}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\providecommand{\href}[2]{#2}
+
+\bibitem[{apa(????)}]{apache_spark}
+ ????
+\newblock \href{http://spark.apache.org/}{Apache {Spark}}.
+
+\bibitem[{Lu et~al.(2012)Lu, Shen, Chen, and Ooi}]{lu_efficient_2012}
+Wei Lu, Yanyan Shen, Su~Chen, and Beng~Chin Ooi. 2012.
+\newblock \href{http://dl.acm.org/citation.cfm?id=2336674}{Efficient processing
+  of k nearest neighbor joins using mapreduce}.
+\newblock \emph{Proceedings of the VLDB Endowment}, 5(10):1016--1027.
+
+\end{thebibliography}

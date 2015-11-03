@@ -1,0 +1,38 @@
+\chapter{Introduction}
+
+
+KNN (K Nearest Neighbour) Join is one of the simplest and elegant
+classification or regression algorithm which works remarkably well in
+practice. It is a non parametric lazy learning algorithm. It is
+classified as one of the top 10 machine learning algorithm. KNN Join
+has become an important primitive in datamining and
+finds its application in multimedia data retrieval, Online
+recommendation, DNA search,
+Molecular Biology, bioinformatics  and
+many other fields.
+
+\medskip
+
+One major drawback of KNN Join with regards to performance is that the computational complexity is
+very high. KNN Join, if run on a single node, with a
+large training and test dataset, fails to provide results in reasonable amount of time, making it
+unusable. This warrants the need for better algorithm with
+reduced computational complexity and should be able to
+leverage distributed frameworks like Hadoop \cite{hadoop_mr} or Spark
+\cite{apache_spark} to run on datacenter scale machines in parallel.
+Though there has been many works, they are mostly focussed on either creating
+an efficient indexing techniques or efficient pruning for reducing
+number of distance computation in a centralized environment.
+Only one
+research paper \cite{lu_efficient_2012} has been published so far in
+designing the accurate algorithm
+for Distributed framework. They chose to use Hadoop MapReduce as it
+was the most dominant framework at that time.
+
+
+In this paper we focus on
+developing an accurate KNN Join algorithm for spark framework, which is
+the current high performant distributed framework. Our goal in this
+paper is to reduce the number of distance computations, improving running time,
+scalability from single node to thousands of node, extensibility from
+medium to large dataset

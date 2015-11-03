@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2014)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: thesis.aux
+The style file: style/mybibstyle.bst
+Database file #1: references.bib
+Warning--I didn't find a database entry for "hadoop_mr"
+Warning--to sort, need author or key in apache_spark
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Warning--empty year in apache_spark; set to ????
+You've used 2 entries,
+            3070 wiz_defined-function locations,
+            656 strings with 5168 characters,
+and the built_in function-call counts, 1017 in all, are:
+= -- 81
+> -- 36
+< -- 0
++ -- 14
+- -- 12
+* -- 87
+:= -- 155
+add.period$ -- 7
+call.type$ -- 2
+change.case$ -- 14
+chr.to.int$ -- 2
+cite$ -- 6
+duplicate$ -- 66
+empty$ -- 81
+format.name$ -- 15
+if$ -- 195
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 14
+newline$ -- 16
+num.names$ -- 4
+pop$ -- 32
+preamble$ -- 1
+purify$ -- 12
+quote$ -- 0
+skip$ -- 23
+stack$ -- 0
+substring$ -- 55
+swap$ -- 32
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 18
+warning$ -- 2
+while$ -- 5
+width$ -- 0
+write$ -- 28
+(There were 3 warnings)
