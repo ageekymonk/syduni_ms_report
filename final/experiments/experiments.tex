@@ -53,12 +53,12 @@ overall runtime, shuffle data and RAM utilization
 \section{Effect of size of dataset}
 
 In this section we will study the effect of size of the dataset on overall running
-time. We have compared the results against bruteforce algorithm.
+time and network bandwidth. We have compared the results against bruteforce algorithm.
 We have used Higgs Dataset with 6 dimensions. In this experiment we
 have utilized the entire ten node cluster for both bruteforce and our
 algorithm.
 
-Fig \cref{fig_effect_of_dataset_size_1} shows how
+\cref{fig_effect_of_dataset_size_1} shows how
 the running time varies when the dataset increases.
 Our proposed algorithm completed the 1 Million vector self join
 in 2.2 minutes where as the brute force algorithm took about 3.9
@@ -70,9 +70,17 @@ algorithm in such a large dataset as time taken will be too long. But
 based on the quadratic increase we have seen as we double the data, our algorithm will be in comparison with
 brute force about 800 to 1000 times faster for 11 Million x 11 Million.
 
-Fig \cref{fig_effect_of_dataset_size_2} shows how the
+\cref{fig_effect_of_dataset_size_2} shows the amount of data
+shuffled between two running tasks. This includes both read and
+write data. We can see that for our algorithm the shuffle bytes is
+about 10 times lower than than the brute force. This shows our
+algorithm is network bandwidth efficient.
 
-\bigskip
+We have used a total of 8.6 GB of RAM for storing all the datasets and
+intermediate results while we ran the
+algorithm. This is the total space used in all the slave nodes. It is
+roughly equivalent to 900 MB of space usage per node. This is
+equivalent to brute force algorithm.
 
 \begin{figure*}[t!]
   \begin{subfigure}[t]{0.5\textwidth}
@@ -146,84 +154,214 @@ Fig \cref{fig_effect_of_dataset_size_2} shows how the
   \caption{Effect of dataset size}
   \label{fig_effect_of_dataset_size}
 \end{figure*}
+
 \section{Effect of k}
 
-Here we have evaluated the effect of number of neighbour calculation
-on the total time taken. Since the performance of bruteforce is very low, we will not using the
-comparison chart anymore. Here we have used the Higgs dataset with
-500k vectors. The time taken increases linearly with increase in k. We
-also see that the number of shuffle bytes as well increase with
-increase in k. This is because with increase in k, we need to find
-more k across partitions.
+In this section we will study the effect of k on overall running
+time and network bandwidth. We have compared the results against bruteforce algorithm.
+We have used Higgs Dataset with 6 dimensions. In this experiment we
+have utilized the entire ten node cluster for both bruteforce and our
+algorithm. In order for us to compare against bruteforce algorithm we are using
+500K vectors only.
 
-\medskip
+\cref{fig_effect_of_k_1} shows how
+the running time varies when the k increases. We see that for
+bruteforce the running time remains constant. This is because the
+number of computation per vector remains the same for brute force
+algorithm. Hence finding any amount of k does not
+cause any change in the total run time. Whereas we see that the
+running time increases with increase in k for our algorithm. This is
+expected because as k increases the distance between a vector to
+farthest neighbour increases. As this distance increases, for more
+points we need to look for neighbours across the partition. This
+increases the average number of distance computation per vector. Hence
+increasing the overall run time. Even with k = 15 we see that our
+algorithm run faster than brute force.
 
-\begin{tikzpicture}[scale=1.0]
-  \begin{axis}[
-    xlabel=$K$,
-    scaled x ticks = false,
-    scaled y ticks = false,
-    xmin=0, xmax=17,
-    ylabel=$TimeTaken(inSeconds)$]
-    \addplot[smooth,mark=*,blue] plot coordinates {
-      (3, 2700)
-      (5, 2700)
-      (7, 2700)
-      (9, 2700)
-      (11, 2700)
-      (13, 2700)
-      (15, 2700)
-    };
-    \addlegendentry{BruteForce}
+\cref{fig_effect_of_k_2} shows the amount of data
+shuffled between two running tasks. This includes both read and
+write data. For brute force algorithm has
+linear increase in shuffle bytes when we increase k. This is expected
+because as we increase k we need to find k nearest neighbour within
+each partition. This k neighbours per vector has to shuffled to every
+other partition so that we can update the results. This causes
+increase in shuffle read and write. For our algorithm we see an
+increase because of two reasons
+\begin{enumerate}
+\item More comparison per vector
+\item More data to be shuffled due to more neighbours per vector
+\end{enumerate}
 
-    \addplot[smooth,color=red,mark=x]
-    plot coordinates {
-      (3, 130)
-      (5, 152)
-      (7, 160)
-      (9, 160)
-      (11, 180)
-      (13, 210)
-      (15, 242)
-    };
-    \addlegendentry{Proposed Algo}
-  \end{axis}
-\end{tikzpicture}
+\begin{figure*}[t!]
+  \begin{subfigure}[t]{0.5\textwidth}
+    \begin{tikzpicture}[scale=0.75]
+      \begin{axis}[
+        xlabel=$ K $,
+        scaled x ticks = false,
+        scaled y ticks = false,
+        xmin=0, xmax=17,
+        ymin=0, ymax=4000,
+        ylabel=$Time\ Taken\ (in\ Seconds)$]
+        \addplot[smooth,mark=*,blue] plot coordinates {
+          (3, 2700)
+          (5, 2700)
+          (7, 2700)
+          (9, 2700)
+          (11, 2700)
+          (13, 2700)
+          (15, 2700)
+        };
+        \addlegendentry{BruteForce}
 
+        \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+          (3, 130)
+          (5, 152)
+          (7, 160)
+          (9, 160)
+          (11, 180)
+          (13, 210)
+          (15, 242)
+        };
+        \addlegendentry{Proposed Algo}
+      \end{axis}
+    \end{tikzpicture}
+    \caption{on total runtime}
+    \label{fig_effect_of_k_1}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[t]{0.5\textwidth}
+    \begin{tikzpicture}[scale=0.75]
+      \begin{axis}[
+        xlabel=$ K $,
+        scaled x ticks = false,
+        scaled y ticks = false,
+        xmin=0, xmax=17,
+        ymin=0, ymax=17,
+        ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
+        \addplot[smooth,mark=*,blue] plot coordinates {
+          (3, 4.5)
+          (5, 5.6)
+          (7, 6.8)
+          (9, 7.8)
+          (11, 8.9)
+          (13, 9.9)
+          (15, 11.2)
+        };
+        \addlegendentry{BruteForce}
+
+        \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+          (3, 1.0)
+          (5, 1.9)
+          (7, 2.8)
+          (9, 3.1)
+          (11, 4.0)
+          (13, 4.8)
+          (15, 6.1)
+        };
+        \addlegendentry{Proposed Algo}
+      \end{axis}
+    \end{tikzpicture}
+    \caption{on shuffle bytes}
+    \label{fig_effect_of_k_2}
+  \end{subfigure}
+  \caption{Effect of K}
+  \label{fig_effect_of_k}
+\end{figure*}
 
 \section{Effect of number of pivots}
-We evaluated the effect of pivots on the running time.
-We found that if the number of pivots is very low the
-performance is poor because then number of comparison per vector
-increases. Also if the number of pivots is high, too many partition
-has to be compared to find nearest neighbours. This causes number of
-shuffle bytes to go high.
 
-\medskip
+In this section we will study the effect of num pivots on overall running
+time and network bandwidth.
+We have used Higgs Dataset with 6 dimensions. In this experiment we
+have utilized the entire ten node cluster for our
+algorithm. To study the effect of pivots we are using dataset with 7
+Million vectors. We are not comparing against bruteforce because this
+is specific for our algorithm.
 
-\begin{tikzpicture}[scale=1.0]
-  \begin{axis}[
-    xlabel=$Num\ Pivots$,
-    scaled x ticks = false,
-    scaled y ticks = false,
-    xmin=0, xmax=7000,
-    ylabel=$TimeTaken(inSeconds)$]
+\cref{fig_effect_of_num_pivots_1} shows how
+the running time varies when we change the number of pivots. Choosing
+a right amount of pivot is important for our algorithm. Choosing a
+value too high or too low results in longer running time of our
+algorithm. This is clearly shown in the V shaped graph we got in our
+tests. If the number of pivots is low, which means number elements per
+partition is high. Since we are doing a join within a partition, this
+will result in increase in number of distance computation per
+vector. This inturn will result in increase in overall run time. If
+the number of pivots is high, which means number of elements per
+partition is low. This means more elements will not have neighbours
+found within a single partition. This increases number of
+shuffle. Moving data across partition has network overhead as well as
+computation overhead. This causes increase in overall run time.
+Empirically we have found that if the partition has elements between
+1500 to 3000 then we have found right number of pivots. So for example
+if we have a million elements then choosing 400 to 800 pivots gives
+good results.
 
-    \addplot[smooth,color=red,mark=x]
-    plot coordinates {
-      (1000, 1000)
-      (2000, 720)
-      (2500, 780)
-      (3000, 780)
-      (4000, 960)
-      (4500, 1020)
-      (5000, 1080)
-      (5500, 1140)
-      (6000, 1320)
-    };
-    \addlegendentry{Proposed Algo}
-  \end{axis}
-\end{tikzpicture}
+\cref{fig_effect_of_num_pivots_2} shows how the shuffle bytes
+increases with increase in number of pivots.
+
+\begin{figure*}[t!]
+  \begin{subfigure}[t]{0.5\textwidth}
+    \begin{tikzpicture}[scale=0.75]
+      \begin{axis}[
+        xlabel=$Num\ Pivots$,
+        scaled x ticks = false,
+        scaled y ticks = false,
+        xmin=0, xmax=7000,
+        ylabel=$TimeTaken(inSeconds)$]
+
+        \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+          (1000, 1000)
+          (2000, 720)
+          (2500, 780)
+          (3000, 780)
+          (4000, 960)
+          (4500, 1020)
+          (5000, 1080)
+          (5500, 1140)
+          (6000, 1320)
+        };
+        \addlegendentry{Proposed Algo}
+      \end{axis}
+    \end{tikzpicture}
+    \caption{on total runtime}
+    \label{fig_effect_of_num_pivots_1}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[t]{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.75]
+    \begin{axis}[
+      xlabel=$ Num \ Pivots $,
+      scaled x ticks = false,
+      scaled y ticks = false,
+      xmin=0, xmax=7000,
+      ymin=0, ymax=47,
+      ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
+      \addplot[smooth,color=red,mark=x]
+      plot coordinates {
+          (1000, 14.2)
+          (2000, 19.5)
+          (2500, 22.5)
+          (3000, 23.5)
+          (4000, 28.5)
+          (4500, 31.7)
+          (5000, 33.0)
+          (5500, 35.0)
+          (6000, 37.0)
+      };
+      \addlegendentry{Proposed Algo}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{on shuffle bytes}
+  \label{fig_effect_of_num_pivots_2}
+  \end{subfigure}
+  \caption{Effect of Num Pivots}
+  \label{fig_effect_of_num_pivots}
+\end{figure*}
+
 
 \section{Effect of dimensions}
 We evaluated the increase in dimensions and found that higher the
@@ -231,101 +369,167 @@ dimensions longer the computation time. This is because at higher dimensions the
 between closest and farthest neighbors will be nearly same
 \cite{beyer_when_1999}. This also causes increase in shuffling bytes.
 
-\bigskip
+\begin{figure*}[t!]
+  \begin{subfigure}[t]{0.5\textwidth}
+    \begin{tikzpicture}[scale=0.75]
+      \begin{axis}[
+        xlabel=$Num\ Dimensions$,
+        scaled x ticks = false,
+        scaled y ticks = false,
+        xmin=0, xmax=30,
+        ymin=0, ymax=4000,
+        ylabel=$TimeTaken(inSeconds)$]
+        \addplot[smooth,mark=*,blue] plot coordinates {
+          (2, 2700)
+          (4, 2700)
+          (6, 2700)
+          (8, 2700)
+          (10, 2700)
+          (12, 2700)
+          (14, 2700)
+          (16, 2700)
+          (18, 2700)
+          (20, 2700)
+          (24, 2700)
+          (26, 2700)
+          (28, 2700)
+        };
+        \addlegendentry{BruteForce}
 
+        \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+          (2, 60)
+          (4, 70)
+          (6, 112)
+          (8, 138)
+          (10, 228)
+          (12, 330)
+          (14, 400)
+          (16, 600)
+          (18, 720)
+          (20, 850)
+          (22, 900)
+          (24, 960)
+          (26, 1020)
+          (28, 1200)
+        };
+        \addlegendentry{Proposed Algo}
+      \end{axis}
+    \end{tikzpicture}
+    \caption{on total runtime}
+    \label{fig_effect_of_num_dim_1}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[t]{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.75]
+    \begin{axis}[
+      xlabel=$ K $,
+      scaled x ticks = false,
+      scaled y ticks = false,
+      xmin=0, xmax=17,
+      ymin=0, ymax=17,
+      ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
+      \addplot[smooth,mark=*,blue] plot coordinates {
+        (3, 4.5)
+        (5, 5.6)
+        (7, 6.8)
+        (9, 7.8)
+        (11, 8.9)
+        (13, 9.9)
+        (15, 11.2)
+      };
+      \addlegendentry{BruteForce}
 
-\begin{tikzpicture}[scale=1.0]
-  \begin{axis}[
-    xlabel=$Num\ Dimensions$,
-    scaled x ticks = false,
-    scaled y ticks = false,
-    xmin=0, xmax=30,
-    ymin=0, ymax=4000,
-    ylabel=$TimeTaken(inSeconds)$]
-    \addplot[smooth,mark=*,blue] plot coordinates {
-      (2, 2700)
-      (4, 2700)
-      (6, 2700)
-      (8, 2700)
-      (10, 2700)
-      (12, 2700)
-      (14, 2700)
-      (16, 2700)
-      (18, 2700)
-      (20, 2700)
-      (24, 2700)
-      (26, 2700)
-      (28, 2700)
-    };
-    \addlegendentry{BruteForce}
-
-    \addplot[smooth,color=red,mark=x]
-    plot coordinates {
-      (2, 60)
-      (4, 70)
-      (6, 112)
-      (8, 138)
-      (10, 228)
-      (12, 330)
-      (14, 400)
-      (16, 600)
-      (18, 720)
-      (20, 850)
-      (22, 900)
-      (24, 960)
-      (26, 1020)
-      (28, 1200)
-    };
-    \addlegendentry{Proposed Algo}
-  \end{axis}
-\end{tikzpicture}
+      \addplot[smooth,color=red,mark=x]
+      plot coordinates {
+        (3, 1.0)
+        (5, 1.9)
+        (7, 2.8)
+        (9, 3.1)
+        (11, 4.0)
+        (13, 4.8)
+        (15, 6.1)
+      };
+      \addlegendentry{Proposed Algo}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{on shuffle bytes}
+  \label{fig_effect_of_num_dim_2}
+  \end{subfigure}
+  \caption{Effect of Num Dimensions}
+  \label{fig_effect_of_num_dim}
+\end{figure*}
 
 \section{Effect of number of nodes}
 Using distributed framework should help us achieve near linear
 scalability. But once we reach a threshold the perfomance start to
 remain constant because many nodes will not be used fully
 
+\begin{figure*}[t!]
+  \begin{subfigure}[t]{0.5\textwidth}
+    \begin{tikzpicture}[scale=0.75]
+      \begin{axis}[
+        axis y line*=left,
+        xlabel=Num Servers,
+        ylabel=time in seconds,
+        ]
+        \addplot[smooth,color=black,mark=x]
+        plot coordinates {
+          (1, 1380)
+          (2, 720)
+          (3, 498)
+          (4, 396)
+          (5, 312)
+          (6, 268)
+          (7, 234)
+          (8, 216)
+          (9, 204)
+          (10, 192)
+        };
+      \end{axis}
+    \end{tikzpicture}
+    \caption{on total runtime}
+    \label{fig_effect_of_num_nodes_1}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[t]{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.75]
+    \begin{axis}[
+      xlabel=$ K $,
+      scaled x ticks = false,
+      scaled y ticks = false,
+      xmin=0, xmax=17,
+      ymin=0, ymax=17,
+      ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
+      \addplot[smooth,mark=*,blue] plot coordinates {
+        (3, 4.5)
+        (5, 5.6)
+        (7, 6.8)
+        (9, 7.8)
+        (11, 8.9)
+        (13, 9.9)
+        (15, 11.2)
+      };
+      \addlegendentry{BruteForce}
 
-\medskip
-
-\begin{tikzpicture}[scale=1.0]
-  \begin{axis}[black,
-    axis y line*=left,
-    xlabel=Num Servers,
-    ylabel=time in seconds,
-    ]
-    \addplot[smooth,color=black,mark=x]
-    plot coordinates {
-      (1, 1380)
-      (2, 720)
-      (3, 498)
-      (4, 396)
-      (5, 312)
-      (6, 268)
-      (7, 234)
-      (8, 216)
-      (9, 204)
-      (10, 192)
-    };
-  \end{axis}
-
-  % \begin{axis}[blue,
-  %   xlabel=Num Servers,
-  %   ylabel=Shuffle MBytes,
-  %   axis y line*=right,
-  %   axis x line=none, ]
-  %   \addplot[smooth,color=blue,mark=x]
-  %   plot coordinates {
-  %     (1, 0)
-  %     (2, 200)
-  %     (3, 300)
-  %     (4, 400)
-  %     (5, 450)
-  %     (6, 450)
-  %     (7, 450)
-  %     (8, 450)
-  %   };
-  % \end{axis}
-\end{tikzpicture}
+      \addplot[smooth,color=red,mark=x]
+      plot coordinates {
+        (3, 1.0)
+        (5, 1.9)
+        (7, 2.8)
+        (9, 3.1)
+        (11, 4.0)
+        (13, 4.8)
+        (15, 6.1)
+      };
+      \addlegendentry{Proposed Algo}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{on shuffle bytes}
+  \label{fig_effect_of_num_nodes_2}
+  \end{subfigure}
+  \caption{Effect of K}
+  \label{fig_effect_of_num_nodes}
+\end{figure*}
 
 \bigskip
