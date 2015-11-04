@@ -1,0 +1,205 @@
+\chapter{Problem Statement and Solution} \label{chap:Problem Statement
+  and Solution}
+\section{Problem Statement}
+
+\section{Algorithm Overview}
+The primary focus of this research is to develop an accurate KNN
+Join algorithm for spark framework. The decision to use spark as our
+framework is driven by
+the fact that spark is in memory and runs much faster than Hadoop
+Mapreduce. The same sentiment is also being echoed in the industry as
+well, as we see more companies are moving to spark from Hadoop map
+reduce.
+
+We have few basic assumptions about the dataset R and S.
+\begin{enumerate}
+\item Both S and R dataset is large
+\item S dataset is stable but R can be changing
+\item S dataset is larger than R dataset
+\item Number of dimensions is less (in order of 10s)
+\end{enumerate}
+
+In spark to run the algorithm in parallel, we need to split the data
+into partitions. This way each partition can be loaded into separate
+nodes and processed in parallel. Partitioning the dataset helps us run
+the algorithm even if the dataset cannot fit into the RAM of single
+node. Spark provides a way to partition the data as we deemed necessary.
+In our algorithm we partition the data by first selecting a set of
+random pivots. All the vectors which are near to a pivot forms a
+partition. Such partition is called voronoi partition.Both R and S
+dataset is partitioned using the same pivots.
+
+The central
+idea for our algorithm is if a data is at the center of the partition
+then most likely the neighbours are within the same partition. This
+computation is done using join transformation in spark. We join
+the R and S dataset, and find the nearest neighbours for partition
+$R_i$ in $S_i$. For smaller dimension data nearly 50 to 60 percentage
+of the vector in R finds its k nearest neighbours in the same
+partition in S dataset.
+
+For all other vectors which are near to the edge of the partition, we
+iteratively look for nearest neighbours in nearby partitions and
+update the previously computed results. This way the algorithm can
+stop once we have checked all the nearest partition or found the best
+K nearest neighbours.
+
+Since we are partitioning the data into n partitions, horizontal scalability we can
+be as high as n nodes. This is the level of parallelism that
+the algorithm provides. Empirically limiting the size of the
+partition to be between 1000 to 3000 elements, provides best run time.
+
+\section{Detailed Steps}
+
+In this section we will provide a detailed description of our
+algorithm.
+
+The algorithm has two phases
+\begin{enumerate}
+\item Pivot Selection
+\item Partition Join
+\end{enumerate}
+
+\subsection{Pivot Selection}
+The first step of our algorithm is to partition the R and S data into smaller
+subsets. This is a data preprocessing step. This step is crucial for
+two reasons
+
+\begin{enumerate}
+\item Better Partition gives better run time performance
+\item Partition also helps us in horizontal scalability
+\end{enumerate}
+
+Pivot selection has been studied in depth in \cite{lu_efficient_2012}.
+In that paper, three different strategies were employed and
+evaluated. The strategies are
+\begin{enumerate}
+\item Random Selection
+\item Farthest Selection
+\item K Means Selection
+\end{enumerate}
+
+Out of these three K Means provides the best standard deviation of
+partition size. Random selection provided the next best results. But
+computation time needed for K Means is higher than Random
+Selection. Based on those results from \cite{lu_efficient_2012}, we
+chose to employ Random Selection for our pivot selection.
+
+There is minor deviation in which dataset to be used for selecting
+pivots. \cite{lu_efficient_2012} uses R dataset for pivot
+selection. But we chose to use S dataset for pivot selection. This is
+because practically S dataset remains stable and R dataset changes. So
+if we chose pivots selection on S dataset we can reuse the
+results. This will speed up time when we do KNN Join of multiple R
+dataset with S.
+
+\bigskip
+
+\begin{algorithm}
+  \caption{Pivot Selection}
+  \label{algo_pivot_selection}
+  \algsetup{linenosize=\small}
+  \begin{algorithmic}[1]
+    \FOR{$i=0$ to $i=T$}
+    \STATE $P_i  \leftarrow \ N\ Random\ Points\ v^i_1,v^i_2,...v^i_N  from\ S$
+    \STATE $T_{dist}^i \leftarrow \sum\limits_{x=0}^N\sum\limits_{y=x}^N d(v^i_x, T^i_y)$
+    \ENDFOR
+    \STATE $pivots \leftarrow\ T^i$ where $T^i\ has\ max\ T^i_{dist}$
+  \end{algorithmic}
+\end{algorithm}
+
+
+In Random Pivot selection algorithm ~\ref{algo_pivot_selection}, we randomly pick N Pivots from the
+S dataset. We pick T such random sets {$P_1$,$P_2$, ... $P_T$}. For each set $P_i$, We
+compute the distance between every two
+vectors and take a cumulative sum. Finally We select the set $P_i$
+which has the maximum cumulative sum.
+
+\bigskip
+
+\begin{algorithm}
+  \caption{Dataset Partition}
+  \label{algo_dataset_partition}
+  \algsetup{linenosize=\small}
+  \begin{algorithmic}[1]
+    \FOR{$i=0$ to $i=T$}
+    \STATE $P_i  \leftarrow \ N\ Random\ Points\ v^i_1,v^i_2,...v^i_N  from\ S$
+    \STATE $T_{dist}^i \leftarrow \sum\limits_{x=0}^N\sum\limits_{y=x}^N d(v^i_x, T^i_y)$
+    \ENDFOR
+    \STATE $pivots \leftarrow\ T^i$ where $T^i\ has\ max\ T^i_{dist}$
+  \end{algorithmic}
+\end{algorithm}
+
+
+From the selected pivots we partition the S dataset and cache it in
+memory. For every point in the dataset we find the nearest pivot. All
+the points that is closer to the pivot forms a partition.
+
+
+\subsection{Partition and Join}
+
+\bigskip
+
+Theorem1: \cite{lu_efficient_2012} Given two pivots $O_i$, $O_j$ of two voronoi
+partition $S_i$ and $S_j$, Let HP($O_i$, $O_j$) be a generalized
+hyperplane which is equidistant from $O_i$ and $O_j$. Then $\forall\ p\
+\epsilon\ S_j$
+
+\medskip
+
+$d(p, HP(O_i, O_j))$ = $\frac{|p,O_i|^2 - |p,O_j|^2}{2 \times |O_i, O_j|}$
+
+\bigskip
+
+Corollary1: Given a point $p\ \epsilon\ S_j$, $\theta = \max{d(p, KNN(p, S_j))}$ be max K Nearest
+neighbour distance from p in partition $S_j$ then partition
+$S_i$ can contain nearest neighbour only if
+
+\medskip
+
+$d(p, HP(O_i, O_j)) > \theta $
+
+\medskip
+
+In this phase both the R and S dataset is partitioned into voronoi
+partition using the selected pivots. For every partition in R and S $R_i$,
+$S_j$ where $i=j$ we find K nearest neighbours for all points in
+$R_i$ within $S_i$. We also find other partitions for $R_i$ in $S_j$
+$\forall\ i\ \neq\ j$ where there is a possibility of finding
+neighbours. For this we use the Theorem1 and Corollary1.
+Once we find the nearest parition we move the R data to that partition
+and search for the nearest neighbour in that.
+
+\begin{algorithm}
+  \caption{Partition and Join}
+  \label{algo_join}
+  \algsetup{linenosize=\small}
+  \begin{algorithmic}[1]
+
+    \STATE Find KNN($R_i$,$S_i$)
+    \FORALL{$r$ in $R_i$}
+    \STATE $r.nearest\_partitions \leftarrow [j]$
+    \STATE where $d(r, HP(O_i, O_j)) > \theta$ and j = 1 to N
+    \ENDFOR
+
+    \STATE Move r to $first(r.nearest\_partitions)\ \forall\ r\ in\ R_i$
+    \REPEAT
+    \STATE Find KNN($R_i$,$S_i$)
+    \FORALL{$r$ in $R_i$}
+    \STATE $r.nearest\_partitions \leftarrow j$
+    \STATE where $d(r, HP(O_i, O_j)) > \theta$  and j in r.nearest\_partitions
+    \ENDFOR
+    \UNTIL{r.nearest\_partitions is none $\forall\ r\ in\ R$}
+
+  \end{algorithmic}
+\end{algorithm}
+
+\bigskip
+
+In Each iteration in the loop starting at line number 6, more and more elements in R will have its nearest
+neighbour found. If the amount of elements in R is small, it will be
+faster if we replicate the element in R to all the nearest\_partition
+and finding nearest neighbours in each partition and finally combining
+it. This proved to provide significant improvement in performance.
+
+\bigskip

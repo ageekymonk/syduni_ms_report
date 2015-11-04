@@ -364,10 +364,34 @@ increases with increase in number of pivots.
 
 
 \section{Effect of dimensions}
-We evaluated the increase in dimensions and found that higher the
-dimensions longer the computation time. This is because at higher dimensions the distance
-between closest and farthest neighbors will be nearly same
-\cite{beyer_when_1999}. This also causes increase in shuffling bytes.
+
+In this section we will study the effect of number of dimension of a
+vector on overall running time and network bandwidth.
+We have used Higgs Dataset with 500k vectors. In this experiment we
+have utilized the entire ten node cluster for our
+algorithm. We have used small dataset so that we can compare with
+brute force algorithm.
+
+\cref{fig_effect_of_num_dim_1} shows how
+the running time varies when we change the number of dimensions.
+For brute force algorithm the
+running time remains constant as number of computation almost remains the
+same. For our algorithm, We see that as the number of pivots increases above 12 dimensions, the
+overall running time increases steeply. This is solely due to curse of
+dimensionality. As the dimensions increases, the points are equally
+spread out in all dimensions \cite{beyer_when_1999}. This means for every vector we need more
+partitions to be compared as most of the points lie on the edge of the
+partition. This increases average number of computation per vector and
+causes more shuffling of data. More shuffling is because vectors with
+incomplete KNN needs to moved across multiple partitions to compute
+the final KNN.
+
+Even at 28 dimensions the
+performance of our algorithm is much better than bruteforce. But if
+the dimensions of the order 100, then it will be much better to use
+bruteforce rather than our algorithm. Right now there is no algorithm
+which can provide accurate KNN for higher dimension faster. There is a
+potential scope for research work here.
 
 \begin{figure*}[t!]
   \begin{subfigure}[t]{0.5\textwidth}
@@ -460,20 +484,39 @@ between closest and farthest neighbors will be nearly same
   \label{fig_effect_of_num_dim}
 \end{figure*}
 
-\section{Effect of number of nodes}
+\section{Horizontal Scalability}
+In this section we will study the scalability of our algorithm. We
+will measure the running time and network bandwidth as we horizonally
+scale.
+We have used Higgs Dataset with 2M vectors with 6 dimensions. In this experiment we
+have utilized the entire ten node cluster for our
+algorithm.
+
+\cref{fig_effect_of_num_nodes_1} shows how
+the running time varies as we horizontally scale our cluster. Ideally,
 Using distributed framework should help us achieve near linear
 scalability. But once we reach a threshold the perfomance start to
 remain constant because many nodes will not be used fully
+utilized. This is observed in our results as well. In order to
+optimize cost, one should rightly choose the number nodes so that we can have
+faster results as well as low cost of running the cluster.
+
+\cref{fig_effect_of_num_nodes_2} show that as we increase number of
+nodes shuffle bytes increases. This is because for vectors whose
+neighbours are in other partitions, vectors has to be shuffled to
+right partition for computing the neighbours. As the number of nodes
+increases data need to be shuffled to different nodes causing increase
+in shuffle data.
 
 \begin{figure*}[t!]
   \begin{subfigure}[t]{0.5\textwidth}
     \begin{tikzpicture}[scale=0.75]
       \begin{axis}[
-        axis y line*=left,
+        % axis y line*=left,
         xlabel=Num Servers,
         ylabel=time in seconds,
         ]
-        \addplot[smooth,color=black,mark=x]
+        \addplot[smooth,color=red,mark=x]
         plot coordinates {
           (1, 1380)
           (2, 720)
@@ -501,26 +544,20 @@ remain constant because many nodes will not be used fully
       xmin=0, xmax=17,
       ymin=0, ymax=17,
       ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
-      \addplot[smooth,mark=*,blue] plot coordinates {
-        (3, 4.5)
-        (5, 5.6)
-        (7, 6.8)
-        (9, 7.8)
-        (11, 8.9)
-        (13, 9.9)
-        (15, 11.2)
-      };
-      \addlegendentry{BruteForce}
 
       \addplot[smooth,color=red,mark=x]
       plot coordinates {
-        (3, 1.0)
-        (5, 1.9)
-        (7, 2.8)
-        (9, 3.1)
-        (11, 4.0)
-        (13, 4.8)
-        (15, 6.1)
+        (1, 0)
+        (2, 1.6)
+        (3, 2.1)
+        (4, 2.4)
+        (5, 2.7)
+        (6, 2.8)
+        (7, 2.9)
+        (8, 2.9)
+        (9, 2.9)
+        (10, 2.9)
+
       };
       \addlegendentry{Proposed Algo}
     \end{axis}

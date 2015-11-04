@@ -1,0 +1,213 @@
+\chapter{Background} \label{chap:Background}
+
+\section{KNN Join}
+In this section we will introduce various terminologies and formally
+describe what is KNN Join. Historically while describing KNN Join, training dataset is termed as
+S dataset and test dataset as R dataset. Henceforth we will describe
+training and test dataset as S and R dataset respectively
+
+\textbf{\emph{Definition 1}} \\
+Given two datasets R and S, where $R \in \mathbb{R}^d\ and\ S\ \in\
+\mathbb{R}^d$ and $\mathbb{R}^d$ is a Real vector of d dimensions, KNN Join returns the K
+Nearest Neighbours in S for every feature Vector in R.
+
+\medskip
+
+\begin{center}
+     $KNN(R,S) = {(r, KNN(r,S), \forall r\ \in\ \mathbb{R}^d)}$
+\end{center}
+
+Nearest neighbour is calculated by computing the distance between every vector
+in R with every vector is S. The distance metric could be any metric
+like euclidean distance or manhattan distance.
+
+\medskip
+
+\textbf{\emph{Definition 2}} \\
+ Given two datasets R and S where $R\ \in\
+\mathbb{R}^d\ and\ S\ \in\ \mathbb{R}^d$, Approximate KNN Join returns the K
+approximate neighbours in S for every feature Vector in R.
+
+\medskip
+
+If $p$ is the exact K\textsuperscript{th} neighbour of r and $p'$ be approximate
+K\textsuperscript{th} neighbour of r, then for any $\epsilon$
+
+\bigskip
+
+\begin{center}
+$d(p,r) <= d(p',r) <= (1+\epsilon) d(p,r)$
+\end{center}
+
+\bigskip
+
+KNN Join is simple to understand and implement but the major draw back
+for the algorithm is its computational complexity. The computational
+complexity of KNN Join is $ O(R*S)$. If the size of R and S is high,
+say for example 1 Million, the number of computation that needs to be
+done is $10^{12}$, which is 1 Trillion calculations. In the age of big data 1
+Million dataset is very nominal. Even with this small dataset size the
+running time will too high, which
+deters everyone to use KNN Join. Until late 1990s, KNN Join was
+never considered a feasible algorithm at all due to its computational
+complexity.There are significant amount of research that has been done to reduce the
+computational complexity. Most algorithms that are out today have focussed
+on either Indexing Method or Paritioning Method in a standalone system. This is because most of those research predates the
+current big data era. In this modern day of high velocity and volume of data,
+only a distributed algorithm with reduced computational complexity will yield the results in resonable amount of time.
+
+Research work that has been done to optimize the KNN algorithm can be categorized based on
+\begin{enumerate}
+\item Approach
+\item Accuracy
+\item Scalability
+\end{enumerate}
+
+
+\begin{table}[!t]
+%\renewcommand{\arraystretch}{1.3}
+\caption{Notations}
+\label{notations}
+\centering
+\begin{tabular}{|c|l|}
+\hline
+Notation & Meaning \\
+\hline
+S & Training Dataset \\
+
+R & Test Dataset\\
+
+k & Number of neighbour points \\
+
+d & Number of dimensions \\
+
+n & Number of elements in Dataset \\
+
+c & some positive constant \\
+
+$\mathbb{R}^d$ & Real vector of d dimensions \\
+
+$R_i, S_i$ & Partitions in R and S Respectively \\
+
+r,s & feature Vectors in Dataset R and S Respectively \\
+
+d(r,s) & Distance between two points r and s \\
+
+$O_i$ & Pivot points \\
+
+\hline
+\end{tabular}
+\end{table}
+
+\bigskip
+
+\section{Approach based Categories}
+The current available research for reducing the computational
+complexity can be broadly classified into these methodology.
+\begin{enumerate}
+\item Index Based
+\item Partition Based
+\end{enumerate}
+
+\medskip
+
+In Index based KNN Join, an index is created for one or both R and S
+dataset. Index is used a primary way of reducing complexity in \cite{jagadish_idistance:_2005}
+\cite{yu_efficient_2007} \cite{bohm_epsilon_2001}.  With indexes it
+becomes easier to look for neighbouring elements in Dataset S, based
+on certain features like distance, boundary cells,  as we
+need to compare only a subset of elements which satisty the
+criteria. For example, In distance based index
+\cite{jagadish_idistance:_2005} we only compare elements which are at
+similar distance in S for an element in R. This can result in huge
+reduction in the number of comparison and it can be as low as $log(n)$, where n is the number of element is
+dataset S.
+
+\medskip
+
+Indexes does not scale for high dimension data. This is true for various
+index algorithms like R tree, $R^* tree$, Quad Tree, Mux tree, B+
+tree. Using index for reducing distance compuation with every element, works
+remarkably well for 2D or 3D geospatial data. The major drawback with the
+index based approach is that when the number of dimensions increase
+creating an index is much costly and its performance is similar to
+that of sequential scan. This is because at higher dimensions the distance
+between closest and farthest neighbors will be nearly same
+\cite{beyer_when_1999}. Another key problem with this approach, even
+for lower dimensions, when
+converting to distributed environment is that it is difficult to
+create an index and use it.
+
+\bigskip
+
+In Partition based KNN Join, the dataset is partitioned into different
+non overlapping partitions. The
+partition can be distance based\cite{lu_efficient_2012} or hashing
+based \cite{stupar_rankreduceprocessing_2010} \cite{yao_k_2010}. For each partition in R only few partitions in S which are
+near to R is considered for presence of Nearest Neighbours. This
+method quickly simplifies the number of elements which we need to
+compare when we are looking for neighbours.
+
+\medskip
+
+There are few challenges with this approach as well. One
+of the main challenge is to find a way to partition all nearby neighbours for a subset
+$R_i$ in relatively few subsets of $S_i$. Hash based partition cannot
+get partition correctly, which means hash based partition will not
+provide accurate KNN Join results. In distance based partition it is difficult to partition
+with relatively low standard deviation in size of the partition. If
+not partitioned properly it can result in one big partition which
+would result in same performance as that of bruteforce.
+
+\bigskip
+
+
+\section{Scalability based Categories}
+
+Since most work in KNN Join has been done before the big data era,
+the main limitations of most algorithms are that they are centralised
+\cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
+\cite{bohm_k-nearest_2004} \cite{kuan_fast_1997} \cite{yu_high-dimensional_2010}.
+Several recent studies \cite{stupar_rankreduceprocessing_2010},
+\cite{lu_efficient_2012} have focused on distributed
+processing, which enables those algorithms to be used in bigger
+dataset which is not possible otherwise.
+
+\medskip
+
+Hadoop Mapreduce was dominant framework for past 10 years. But as the
+systems evolve, mapreduce framework is on the way out
+too. Now spark is quickly becoming the defacto framework for
+distributed computing. There is significant increase in number users
+in spark and it has proved its exceptional performance over
+hadoop mapreduce. But there are no work that has been done to make
+KNN Join better for spark framework. This is an area where significant
+work is needed to convert algorithms in centralized settings and mapreduce framework  to spark
+framework.
+
+\section{Accuracy based Categories}
+Algorithms that computes KNN Join can provide accurate or approximate results. There
+are trade off between accuracy and the computation cost. There are few
+works dedicated to get approximate results \cite{stupar_rankreduceprocessing_2010}
+\cite{zhang_efficient_2012} and few for accurate
+\cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
+\cite{lu_efficient_2012}
+
+\medskip
+
+One of the major problem with approximate algorithms is that at higher
+dimensions the accuracy becomes very low. The $\epsilon$ paramter to
+control the level of accuracy, if it is very low can result in very
+poor performance than the accurate one. Only the applications that is
+using the algorithm can decide if such trade off is acceptable.
+
+\medskip
+
+Two methods are predominantly
+used in approximate algorithms.
+\begin{enumerate}
+\item z order curve
+\item Locality sensitive Hashing
+\end{enumerate}
+
+\bigskip
