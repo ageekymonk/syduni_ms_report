@@ -93,10 +93,12 @@ if we chose pivots selection on S dataset we can reuse the
 results. This will speed up time when we do KNN Join of multiple R
 dataset with S.
 
-\bigskip
+\medskip
+
+Below is the pseudocode for Random Pivot seletion algorithm.
 
 \begin{algorithm}
-  \caption{Pivot Selection}
+  \caption{Random Pivot Selection}
   \label{algo_pivot_selection}
   \algsetup{linenosize=\small}
   \begin{algorithmic}[1]
@@ -109,7 +111,7 @@ dataset with S.
 \end{algorithm}
 
 
-In Random Pivot selection algorithm ~\ref{algo_pivot_selection}, we randomly pick N Pivots from the
+In Random Pivot selection algorithm [~\ref{algo_pivot_selection}], we randomly pick N Pivots from the
 S dataset. We pick T such random sets {$P_1$,$P_2$, ... $P_T$}. For each set $P_i$, We
 compute the distance between every two
 vectors and take a cumulative sum. Finally We select the set $P_i$
@@ -117,52 +119,181 @@ which has the maximum cumulative sum.
 
 \bigskip
 
+After selecting the pivots, next step is to partition the S dataset
+and R dataset. Below is the pseudocode for data partitioning.
+
 \begin{algorithm}
   \caption{Dataset Partition}
   \label{algo_dataset_partition}
   \algsetup{linenosize=\small}
   \begin{algorithmic}[1]
-    \FOR{$i=0$ to $i=T$}
-    \STATE $P_i  \leftarrow \ N\ Random\ Points\ v^i_1,v^i_2,...v^i_N  from\ S$
-    \STATE $T_{dist}^i \leftarrow \sum\limits_{x=0}^N\sum\limits_{y=x}^N d(v^i_x, T^i_y)$
+    \STATE $DS\ \leftarrow\ input\ dataset$
+    \FORALL{$v\ in\ DS$}
+    \STATE partition(v) = $min_{O_i \forall O}\{dist(v, O_i)\}$.pivotIndex
     \ENDFOR
-    \STATE $pivots \leftarrow\ T^i$ where $T^i\ has\ max\ T^i_{dist}$
   \end{algorithmic}
 \end{algorithm}
 
 
-From the selected pivots we partition the S dataset and cache it in
-memory. For every point in the dataset we find the nearest pivot. All
-the points that is closer to the pivot forms a partition.
+For every point in the dataset we find the nearest pivot. All
+the points that is closer to the pivot forms a partition. We also
+cache the partitioned dataset. This is to avoid recomputation in
+spark.
 
+In spark we create a RDD for both S and R Dataset. The RDD is
+partitioned based on our data partition algorithm
+[~\ref{algo_dataset_partition}]. The RDD has N elements, each element is
+made as a partition. The element is of
+the format \emph{(partitionId, List(vectors))}. This format helps us
+while we do join between R and S dataset. We use hash partitioner to
+make sure elements with same key are colocated. Hence the partition $r_i$ and
+$s_i$ will be colocated since they have the same partitionId.
 
-\subsection{Partition and Join}
+\subsection{Join}
 
-\bigskip
+\medskip
 
-Theorem1: \cite{lu_efficient_2012} Given two pivots $O_i$, $O_j$ of two voronoi
+Theorem1: \cite{lu_efficient_2012} \\
+
+Given two pivots $O_i$, $O_j$ of two voronoi
 partition $S_i$ and $S_j$, Let HP($O_i$, $O_j$) be a generalized
 hyperplane which is equidistant from $O_i$ and $O_j$. Then $\forall\ p\
 \epsilon\ S_j$
 
 \medskip
 
-$d(p, HP(O_i, O_j))$ = $\frac{|p,O_i|^2 - |p,O_j|^2}{2 \times |O_i, O_j|}$
+\begin{center}
+
+$d(p, HP(O_i, O_j))$ = $\frac{|p, O_i|^2 - |p, O_j|^2}{2 \times |O_i, O_j|}$
+
+\end{center}
 
 \bigskip
 
-Corollary1: Given a point $p\ \epsilon\ S_j$, $\theta = \max{d(p, KNN(p, S_j))}$ be max K Nearest
+Corollary1: \\
+
+Given a point $p\ \epsilon\ S_j$, $\theta = \max{d(p, KNN(p, S_j))}$ be max K Nearest
 neighbour distance from p in partition $S_j$ then partition
 $S_i$ can contain nearest neighbour only if
 
 \medskip
 
+\begin{center}
+
 $d(p, HP(O_i, O_j)) > \theta $
+
+\end{center}
 
 \medskip
 
-In this phase both the R and S dataset is partitioned into voronoi
-partition using the selected pivots. For every partition in R and S $R_i$,
+\begin{algorithm}
+  \caption{Summary Table}
+  \label{algo_generate_summary}
+  \algsetup{linenosize=\small}
+  \begin{algorithmic}[1]
+    \FORALL{$S_i\ in\ S$}
+    \STATE $S_i$.maxDistance = $max_{s_i \forall S_i}\{dist(s_i, O_i)\}$
+    \ENDFOR
+  \end{algorithmic}
+\end{algorithm}
+
+Once we have partitioned R and S dataset, we need to create a summary
+table. In summary table we find the max distance of a vector from a
+pivot. This information is later used while calculating whether the
+vector is at the center or at the edge.
+
+\begin{algorithm}
+  \caption{Bruteforce NN}
+  \label{algo_bruteforce_nn}
+  \algsetup{linenosize=\small}
+  \begin{algorithmic}[1]
+    \STATE $S_i \leftarrow input$
+    \STATE $R_i \leftarrow input$
+    \FORALL{$r_x\ in\ R_i$}
+    \STATE $r_x$.KNN = []
+    \FORALL{$s_y\ in\ S_j$}
+    \STATE dist = |$r_x$, $s_y$|
+    \IF {dist < |$r_x$, $r_x$.KNN[last]|}
+    \STATE $r_x$.KNN[last] = $s_y$
+    \ENDIF
+    \ENDFOR
+    \ENDFOR
+  \end{algorithmic}
+\end{algorithm}
+
+
+Once we have created the summary table, the next step is to perform a join transformation between R
+and S dataset. Spark's Join Transformation when called on two dataset R and S,
+which is of format (K, V) and (K, W) respectively returns (K,
+(V,W)). Since we have R and S dataset partitioned into N partitions,
+with the format of each element being (partitionId, List($r_i$)) and
+(partitionId, List($s_i$)), join transformation produces (partitionId,
+(List($r_i$), List($s_i$))). Sine the data is colocated there will not
+be any shuffle due to join transformation. We perform bruteforce KNN
+Join on the joined output. So we find K Nearest neighbour for all
+elements in $R_i$ within $S_i$. Since the size of $S_i$ and $R_i$ are
+small the bruteforce gives faster results.
+
+\begin{center}
+\begin{figure}
+\begin{tikzpicture}
+\draw[blue] (0,0) circle (4pt) ;
+\draw[blue] (4,0) circle (4pt);
+\draw[black]  (3, 1.5) circle (4pt);
+\draw[red]   (3.65, 2.2) circle (4pt);
+
+\draw[thin] (3,1.5)node[right]{$\mathbf{r_i}$} -- (0, 0) node[left]{$\mathbf{O_j}$} -- (4,0) node[right]{$\mathbf{O_i}$};
+\draw[thin] (4, 0) -- (3, 1.5);
+\draw[thin] (3, 1.5) -- node[above]{$\mathbf{y}$} (3.65, 2.2) ;
+\draw[thin,dashed] (3, 1.5) -- node[above]{$\mathbf{x}$} (2, 1.5) ;
+\draw[thick] (2,3) -- (2,-1) node[right]{$\mathbf{HP(O_i, O_j)}$} ;
+
+\node[text width=6.2in] at (2,-2) {$x = \frac{|p,\ O_i|^2\ -\ |p,\ O_j|^2}{2 \times |O_i,\ O_j|}$};
+\node[text width=6.2in] at (2,-3) {y = distance of farthest neighbour};
+\end{tikzpicture}
+\caption{ }
+\label{fig_triangle_inequality}
+\end{figure}
+\end{center}
+
+\begin{algorithm}
+  \caption{FindNbrPartition}
+  \label{algo_nbr_partition}
+  \algsetup{linenosize=\small}
+  \begin{algorithmic}[1]
+    \FORALL{$R_i\ in\ R$}
+    \FORALL{$r_x in R_i$}
+    \STATE $r_x$.nbrPart = []
+    \FORALL{$O_j in O$ }
+    \STATE $x = \frac{|r_x,\ O_i|^2\ -\ |,\ O_j|^2}{2 \times |O_i,\
+      O_j|}$
+    \IF{x < $r_x$.KNN[last]}
+    \STATE $r_x$.nbrPart.append($R_i$)
+    \ELSE
+    \STATE $r_x$ has all its KNN Found
+    \ENDIF
+    \ENDFOR
+    \ENDFOR
+    \ENDFOR
+  \end{algorithmic}
+\end{algorithm}
+
+
+
+Next step is to find for every vector in $R_i$, we search for the nearest partitions
+which may contain Nearest Neighbours. From ~\ref{fig_triangle_inequality}, we can see that if $x > y
+$ then the partition will not contain any neighbours for the vector
+$r_i$. If $x < y$ then the partition might contain a neighbour, so we
+select the partition for further inspection.
+
+Once we have the list of partition to be searched for every vector, we
+move the vectors to first element in the list of partition. Then
+perform the bruteforce search and update the KNN List, if
+necessary. Then we update the partition list if necessary. We iterate
+continuously until all the vectors KNN has been found.
+
+(partitionId,
+(List($r_i$), List($s_i$))). For every partition in R and S $R_i$,
 $S_j$ where $i=j$ we find K nearest neighbours for all points in
 $R_i$ within $S_i$. We also find other partitions for $R_i$ in $S_j$
 $\forall\ i\ \neq\ j$ where there is a possibility of finding
@@ -175,21 +306,19 @@ and search for the nearest neighbour in that.
   \label{algo_join}
   \algsetup{linenosize=\small}
   \begin{algorithmic}[1]
-
-    \STATE Find KNN($R_i$,$S_i$)
-    \FORALL{$r$ in $R_i$}
-    \STATE $r.nearest\_partitions \leftarrow [j]$
-    \STATE where $d(r, HP(O_i, O_j)) > \theta$ and j = 1 to N
-    \ENDFOR
-
-    \STATE Move r to $first(r.nearest\_partitions)\ \forall\ r\ in\ R_i$
     \REPEAT
-    \STATE Find KNN($R_i$,$S_i$)
-    \FORALL{$r$ in $R_i$}
-    \STATE $r.nearest\_partitions \leftarrow j$
-    \STATE where $d(r, HP(O_i, O_j)) > \theta$  and j in r.nearest\_partitions
+
+    \FORALL{i=0 to N}
+    \STATE Call BruteforceNN($R_i$,$S_i$)
     \ENDFOR
-    \UNTIL{r.nearest\_partitions is none $\forall\ r\ in\ R$}
+
+    \STATE Call FindNbrPartition
+
+    \FORALL{r in R}
+    \STATE Move r to r.nbrPart[0]
+    \ENDFOR
+
+    \UNTIL{KNN Found for all $r \in R$}
 
   \end{algorithmic}
 \end{algorithm}
@@ -203,3 +332,8 @@ and finding nearest neighbours in each partition and finally combining
 it. This proved to provide significant improvement in performance.
 
 \bigskip
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
