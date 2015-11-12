@@ -7,8 +7,9 @@ have used Mesos as our resource manager for our cluster. Our compute
 cluster has one mesos master node which is used
 primarily to monitor slave nodes and do resource scheduling.
 It also runs a spark history server. This node is not used for any computation.
-We have ten slave nodes where all the computation happens. Each slave node has
-8 vCPUs, 16 GB RAM and 80 GB Hard disk. The master node has 8 vCPUs,
+We have ten slave nodes where all the computation happens. Each slave
+node is an r3 2xlarge instance. Each slave node has
+8 vCPUs, 16 GB RAM and 80 GB Hard disk reserved for spark. The master node has 8 vCPUs,
 16GB RAM and 80 GB Hard disk. Each vCPU is approximately 1/2 a
 core. vCPU is unit used by AWS. All the nodes are running ubuntu as
 base OS.
@@ -66,7 +67,7 @@ Our proposed algorithm completed the 1 Million vector self join
 in 2.2 minutes where as the brute force algorithm took about 3.9
 hours. We are getting approximately 100 times faster even with the small
 dataset.As the dataset size increases to 11 Million vectors, our
-algorithm completed within 26 minutes.For brute force algorithm we can see that as the dataset doubles the running time
+algorithm completed within 26 minutes. A with brute force algorithm, we can see that as the dataset doubles the running time
 increases quadratically.  Due to this, we did not run the bruteforce
 algorithm in such a large dataset as time taken will be too long. But
 based on the quadratic increase we have seen as we double the data, our algorithm will be in comparison with
@@ -181,7 +182,8 @@ because of two reasons
 \end{enumerate}
 
 There is more comparison per vector as k increases, because the distance between a vector to
-farthest neighbour increases with increase in k. As this distance increases, for more
+farthest neighbour increases with increase in k. As this distance
+increases,  for
 points we need to look for neighbours across the partition. This
 increases the average number of distance computation per vector. Hence
 increasing the overall run time. Since we are checking neighbouring
