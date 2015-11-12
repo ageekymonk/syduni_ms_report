@@ -336,9 +336,9 @@ neighbours. For this we use the Theorem1 and Corollary1.
 Once we find the nearest partition we move the $r \in R$ to that partition
 and search for the nearest neighbour in that.
 
-In Each iteration in the loop starting at line number 6, more and more elements in R will have its nearest
+In Each iteration, more and more elements in R will have its nearest
 neighbour found. If the amount of elements in R is small, it will be
-faster if we replicate the element in R to all the nearest\_partition
+faster if we replicate all the elements in R to all the partitions in nbrPart
 and finding nearest neighbours in each partition and finally combining
 it. This proved to provide significant improvement in performance.
 
