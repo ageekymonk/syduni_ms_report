@@ -3,71 +3,15 @@
 \section{KNN Join}
 In this section we will introduce various terminologies and formally
 describe what is KNN Join. Historically while describing KNN Join, training dataset is termed as
-S dataset and test dataset as R dataset. Henceforth we will describe
-training and test dataset as S and R dataset respectively
+S dataset and test dataset as R dataset. Henceforth, we will describe
+training and test dataset as S and R dataset
+respectively. Table ~\ref{table_notations} lists all the symbols that will be
+used throughout the paper.
 
-\textbf{\emph{Definition 1}} \\
-Given two datasets R and S, where $R \in \mathbb{R}^d\ and\ S\ \in\
-\mathbb{R}^d$ and $\mathbb{R}^d$ is a Real vector of d dimensions, KNN Join returns the K
-Nearest Neighbours in S for every feature Vector in R.
-
-\medskip
-
-\begin{center}
-     $KNN(R,S) = {(r, KNN(r,S), \forall r\ \in\ \mathbb{R}^d)}$
-\end{center}
-
-Nearest neighbour is calculated by computing the distance between every vector
-in R with every vector is S. The distance metric could be any metric
-like euclidean distance or manhattan distance.
-
-\medskip
-
-\textbf{\emph{Definition 2}} \\
- Given two datasets R and S where $R\ \in\
-\mathbb{R}^d\ and\ S\ \in\ \mathbb{R}^d$, Approximate KNN Join returns the K
-approximate neighbours in S for every feature Vector in R.
-
-\medskip
-
-If $p$ is the exact K\textsuperscript{th} neighbour of r and $p'$ be approximate
-K\textsuperscript{th} neighbour of r, then for any $\epsilon$
-
-\bigskip
-
-\begin{center}
-$d(p,r) <= d(p',r) <= (1+\epsilon) d(p,r)$
-\end{center}
-
-\bigskip
-
-KNN Join is simple to understand and implement but the major draw back
-for the algorithm is its computational complexity. The computational
-complexity of KNN Join is $ O(R*S)$. If the size of R and S is high,
-say for example 1 Million, the number of computation that needs to be
-done is $10^{12}$, which is 1 Trillion calculations. In the age of big data 1
-Million dataset is very nominal. Even with this small dataset size the
-running time will too high, which
-deters everyone to use KNN Join. Until late 1990s, KNN Join was
-never considered a feasible algorithm at all due to its computational
-complexity.There are significant amount of research that has been done to reduce the
-computational complexity. Most algorithms that are out today have focussed
-on either Indexing Method or Paritioning Method in a standalone system. This is because most of those research predates the
-current big data era. In this modern day of high velocity and volume of data,
-only a distributed algorithm with reduced computational complexity will yield the results in resonable amount of time.
-
-Research work that has been done to optimize the KNN algorithm can be categorized based on
-\begin{enumerate}
-\item Approach
-\item Accuracy
-\item Scalability
-\end{enumerate}
-
-
-\begin{table}[!t]
+\begin{table}[!ht]
 %\renewcommand{\arraystretch}{1.3}
 \caption{Notations}
-\label{notations}
+\label{table_notations}
 \centering
 \begin{tabular}{|c|l|}
 \hline
@@ -99,11 +43,71 @@ $O_i$ & Pivot points \\
 \end{tabular}
 \end{table}
 
+
+\textbf{\emph{Definition 1}} \\
+Given two datasets R and S, where $R,S \in\
+\mathbb{R}^d$ and $\mathbb{R}^d$ is a Real vector of d dimensions, KNN Join returns the K
+Nearest Neighbours in S for every feature Vector in R.
+
+\medskip
+
+\begin{center}
+     $KNN(R,S) = {(r,s) | \forall r\ \in\ R, \forall s\ \in KNN(r,S)
+     } $
+\end{center}
+
+Nearest neighbour is calculated by computing the distance between every vector
+in R with every vector is S. The distance metric could be any metric
+like euclidean distance or manhattan distance.
+
+\medskip
+
+\textbf{\emph{Definition 2}} \\
+ Given two datasets R and S where $R,S\ \in\ \mathbb{R}^d$, Approximate KNN Join returns the K
+approximate neighbours in S for every feature Vector in R.
+
+\medskip
+
+If $p$ is the exact K\textsuperscript{th} neighbour of r and $p'$ be approximate
+K\textsuperscript{th} neighbour of r, then for any $\epsilon$
+
 \bigskip
 
-\section{Approach based Categories}
+\begin{center}
+$d(p,r) <= d(p',r) <= (1+\epsilon) d(p,r)$
+\end{center}
+
+\bigskip
+
+KNN Join is simple to understand and implement but the major draw back
+for the algorithm is its computational complexity. The computational
+complexity of KNN Join is $ O(|R|*|S|)$. If the size of R and S is high,
+say for example 1 Million, the number of computation that needs to be
+done is $10^{12}$, which is 1 Trillion calculations. In the age of big data 1
+Million dataset is very nominal. Even with this small dataset size, the
+running time is too high (approximately 40 hours, if run on 8 core machine), which
+deters everyone from using KNN Join. Until late 1990s, KNN Join was
+never considered as a feasible algorithm at all, owing to its computational
+complexity.There are significant amount of research that has been done to reduce the
+computational complexity. Most algorithms that are out today have focussed
+on either creating an Indexing Method or Paritioning Method in a standalone system. This is because most of those research predates the
+current big data era. In this modern day of high velocity and high volume of data,
+only a distributed algorithm with reduced computational complexity will yield the results in resonable amount of time.
+
+The research works that has been done to optimize the KNN algorithm can be categorized based on
+\begin{enumerate}
+\item Approach
+\item Accuracy
+\item Scalability
+\end{enumerate}
+
+
+
+\bigskip
+
+\section{Index Based vs Partition Based KNN}
 The current available research for reducing the computational
-complexity can be broadly classified into these methodology.
+complexity can be broadly classified into these approaches.
 \begin{enumerate}
 \item Index Based
 \item Partition Based
@@ -111,16 +115,16 @@ complexity can be broadly classified into these methodology.
 
 \medskip
 
-In Index based KNN Join, an index is created for one or both R and S
-dataset. Index is used a primary way of reducing complexity in \cite{jagadish_idistance:_2005}
+In Index based KNN Join, an index is created for one or both of R and S
+dataset. Index is used as a primary way of reducing complexity in \cite{jagadish_idistance:_2005}
 \cite{yu_efficient_2007} \cite{bohm_epsilon_2001}.  With indexes it
-becomes easier to look for neighbouring elements in Dataset S, based
+becomes easier to look for neighbouring elements in dataset S, based
 on certain features like distance, boundary cells,  as we
-need to compare only a subset of elements which satisty the
-criteria. For example, In distance based index
+need to compare only a subset of elements which satisfies the
+criteria. For example, in distance based index
 \cite{jagadish_idistance:_2005} we only compare elements which are at
 similar distance in S for an element in R. This can result in huge
-reduction in the number of comparison and it can be as low as $log(n)$, where n is the number of element is
+reduction in the number of comparison and it can be as low as $log(n)$, where n is the number of element in
 dataset S.
 
 \medskip
@@ -129,8 +133,8 @@ Indexes does not scale for high dimension data. This is true for various
 index algorithms like R tree, $R^* tree$, Quad Tree, Mux tree, B+
 tree. Using index for reducing distance compuation with every element, works
 remarkably well for 2D or 3D geospatial data. The major drawback with the
-index based approach is that when the number of dimensions increase
-creating an index is much costly and its performance is similar to
+index based approach is that when the number of dimensions increase,
+creating an index is much costly and its performance is worse than
 that of sequential scan. This is because at higher dimensions the distance
 between closest and farthest neighbors will be nearly same
 \cite{beyer_when_1999}. Another key problem with this approach, even
@@ -144,7 +148,7 @@ In Partition based KNN Join, the dataset is partitioned into different
 non overlapping partitions. The
 partition can be distance based\cite{lu_efficient_2012} or hashing
 based \cite{stupar_rankreduceprocessing_2010} \cite{yao_k_2010}. For each partition in R only few partitions in S which are
-near to R is considered for presence of Nearest Neighbours. This
+near to R is considered for presence of nearest neighbours. This
 method quickly simplifies the number of elements which we need to
 compare when we are looking for neighbours.
 
@@ -162,10 +166,17 @@ would result in same performance as that of bruteforce.
 \bigskip
 
 
-\section{Scalability based Categories}
+\section{Centralized vs Distributed KNN}
+
+Based on the scalability the reseach works can be divided into two
+groups
+\begin{enumerate}
+\item Centralized KNN
+\item Distributed KNN
+\end{enumerate}
 
 Since most work in KNN Join has been done before the big data era,
-the main limitations of most algorithms are that they are centralised
+most of the algorithms are designed to be centralizedd
 \cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
 \cite{bohm_k-nearest_2004} \cite{kuan_fast_1997} \cite{yu_high-dimensional_2010}.
 Several recent studies \cite{stupar_rankreduceprocessing_2010},
@@ -175,9 +186,30 @@ dataset which is not possible otherwise.
 
 \medskip
 
-Hadoop Mapreduce was dominant framework for past 10 years. But as the
-systems evolve, mapreduce framework is on the way out
-too. Now spark is quickly becoming the defacto framework for
+All the centralized algorithms are designed with the idea that the
+data will fit into a single node. With the disk being so cheap, we can
+store most of the data within a single node. With falling cost of on
+demand availability of compute cluster the algorithms does not take
+advantage of parallel processing. Most algorithms which are
+centralized builds an index for the entire data. Making those
+algorithm distributed is rather difficult.
+
+\medskip
+
+Hadoop Mapreduce was dominant distributed framework for last 8
+years. There has been one research work \cite{lu_efficient_2012} which
+used mapreduce as its framework for its algorithm. The algorithms
+which are crafted for these distributed framework are not easily
+portable to other frameworks. But as the
+systems evolved, mapreduce framework is on the way out. This is
+because mapreduce was designed for scalability. It can scale to handle
+petabytes of data with ease. But it was not designed for
+performance. Any algorithm if designed for mapreduce framework is
+created as a pipeline of map and reduce steps and all the
+intermediate results are writtent to disk and read from the disk. This
+lowered the performance a lot.
+
+Wit the advent of spark with its inmemory primitives, it is quickly becoming the defacto framework for
 distributed computing. There is significant increase in number users
 in spark and it has proved its exceptional performance over
 hadoop mapreduce. But there are no work that has been done to make
@@ -185,13 +217,35 @@ KNN Join better for spark framework. This is an area where significant
 work is needed to convert algorithms in centralized settings and mapreduce framework  to spark
 framework.
 
-\section{Accuracy based Categories}
-Algorithms that computes KNN Join can provide accurate or approximate results. There
-are trade off between accuracy and the computation cost. There are few
+\section{Accurate vs Approximate KNN}
+
+Due to the high computational complexity of KNN Join, researchers
+also focused on getting approximate results. Based on the accuracy the
+research works can be classified into two groups
+\begin{enumerate}
+\item Accurate KNN
+\item Approximate KNN
+\end{enumerate}
+
+
+Between the accurate and approximate KNN algorithm, there are trade
+off between accuracy and the computation cost. There are few
 works dedicated to get approximate results \cite{stupar_rankreduceprocessing_2010}
 \cite{zhang_efficient_2012} and few for accurate
 \cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
-\cite{lu_efficient_2012}
+\cite{lu_efficient_2012}. Some algorithms also allow to control the
+level of accuracy $\epsilon$  parameter of the results. With better approximation implies
+more computation cost. Choosing either one of the algorithm depends on
+application in question.
+
+\medskip
+
+Two methods are predominantly
+used in approximate algorithms.
+\begin{enumerate}
+\item z order curve
+\item Locality sensitive Hashing
+\end{enumerate}
 
 \medskip
 
@@ -203,11 +257,67 @@ using the algorithm can decide if such trade off is acceptable.
 
 \medskip
 
-Two methods are predominantly
-used in approximate algorithms.
+\section{Spark}
+Apache spark is an opensource distributed framework for cluster
+computing designed and developed by University of California,
+Berkeley. Hadoop Mapreduce uses two stage disk based Mapreduce
+paradigm with two stages being map and reduce. In contrast to that
+spark's in memory multi stage primitives provide about 100 times
+faster performance for certain applications, if the data can fit into
+memory completely. Due to spark's multistage design it is highly
+suitable for machine learning and for other iterative algorithms.
+Spark supports standalone native cluster manager, Hadoop YARN or
+Apache Mesos. We have used Apache Mesos as our cluster manager in our
+experiments. Spark can use any distributed storage systems underneath
+like HDFS, Cassandra, Amazon S3, etc.
+
+Spark has advanced DAG execution engine which allows developer to
+create complex execution pipelines. Spark holds all intermediate
+results in memory rather than writing to disk, this helps a lot if you
+need to reuse some of the results again and again. It is also designed
+to use disk in case if it cannot fit all the data in memory.
+
+Resilient Distributed Dataset(RDD) is the core concept in spark. RDD
+is a distributed table which can hold any data. RDD may contain many
+partitions and each partition is stored in different nodes if needed.
+RDDs are immutable. Any transformations on the RDD returns a new
+RDD. So any RDD has a lineage and in case a node contains an RDD goes
+down, we can recreate the RDD following the lineage structure. This is
+how spark achieves fault tolerance.
+
+RDD Supports two types of operations
 \begin{enumerate}
-\item z order curve
-\item Locality sensitive Hashing
+\item Transformation
+\item Action
 \end{enumerate}
+
+Transformation, as the name denotes, transforms a RDD to a new
+one. Some of the transformations are map, flatMap, mapPartitions,
+union, intersection, distinct, groupByKey, join, etc. When a
+transformation is called it is not evaluated immediately, it is
+evaluated only when an action is called.
+
+Action operation on a RDD evaluates and returns a new value. It
+evaluates all the Trasformations that are done before the
+action. Examples for actions are reduce, collect, take, foreach, etc.
+
+Spark's execution hierarchy has the following elements
+\begin{enumerate}
+\item Jobs
+\item Stages
+\item Tasks
+\end{enumerate}
+
+Jobs are the top of the hierarchy. A job is triggered when an action
+operation is triggered on a RDD. A job has set of stages, which are
+set of transformations which can be done without shuffling. If there
+is a shuffling then it becomes a next stage. Stage contains set of
+tasks which is executing same code on different nodes.
+
+In this thesis we have worked on optimizing the number of jobs and
+stages so that there are not many running tasks which can increase the
+running time. We also used caching effectively so that the
+intermediate results are reused.
+
 
 \bigskip

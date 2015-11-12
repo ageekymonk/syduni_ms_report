@@ -1,5 +1,16 @@
 \chapter*{Abstract}
+KNN Join is a simple but effective Machine Learning algorithm. It is
+one of the top 10 machine learning algorithm. The algorithm does not
+scale well for large datasets due to its high computational
+complexity. With the advent of cloud providers and falling cost of
+on-demand computing resources, it would be prudent to design a
+distributed algorithm with lower computational complexity, high
+horizontal scalability and with better runtime.
 
-The abstract goes in here.
-
-
+Our thesis is about designing a distributed algorithm for Accurate
+KNN Join problem with reduced computational complexity. We have chosen spark as our
+distributed framework because of its inmemory primitives and its
+suitability for iterative programming. Our algorithm is scalable to
+very large datasets and is also horizontally scalable. With all the
+optimizations, our algorithm can be more than 1000 times faster than
+bruteforce for a dataset size of 12 Million vectors.

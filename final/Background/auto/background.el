@@ -3,5 +3,5 @@
  (lambda ()
    (LaTeX-add-labels
     "chap:Background"
-    "notations")))
+    "table_notations")))
 

@@ -1,6 +1,4 @@
-\chapter{Problem Statement and Solution} \label{chap:Problem Statement
-  and Solution}
-\section{Problem Statement}
+\chapter{Algorithm Design} \label{chap:Algorithm Design}
 
 \section{Algorithm Overview}
 The primary focus of this research is to develop an accurate KNN
@@ -19,6 +17,38 @@ We have few basic assumptions about the dataset R and S.
 \item Number of dimensions is less (in order of 10s)
 \end{enumerate}
 
+
+\begin{figure}[t!]
+  \caption{Voronoi Partition}
+  \label{voronoi_partition}
+  \centering
+\includegraphics[width=10cm,height=10cm]{images/voronoi.png}
+\end{figure}
+
+
+\begin{center}
+\begin{figure}
+\begin{tikzpicture}
+\draw[blue] (0,0) circle (4pt) ;
+\draw[blue] (4,0) circle (4pt);
+\draw[black]  (3, 1.5) circle (4pt);
+\draw[red]   (3.65, 2.2) circle (4pt);
+
+\draw[thin] (3,1.5)node[right]{$\mathbf{r_i}$} -- (0, 0) node[left]{$\mathbf{O_j}$} -- (4,0) node[right]{$\mathbf{O_i}$};
+\draw[thin] (4, 0) -- (3, 1.5);
+\draw[thin] (3, 1.5) -- node[above]{$\mathbf{y}$} (3.65, 2.2) ;
+\draw[thin,dashed] (3, 1.5) -- node[above]{$\mathbf{x}$} (2, 1.5) ;
+\draw[thick] (2,3) -- (2,-1) node[right]{$\mathbf{HP(O_i, O_j)}$} ;
+
+\node[text width=6.2in] at (2,-2) {$x = \frac{|p,\ O_i|^2\ -\ |p,\ O_j|^2}{2 \times |O_i,\ O_j|}$};
+\node[text width=6.2in] at (2,-3) {y = distance of farthest neighbour};
+\end{tikzpicture}
+\caption{ Distance bound for a point to its hyperplane }
+\label{fig_triangle_inequality}
+\end{figure}
+\end{center}
+
+
 In spark to run the algorithm in parallel, we need to split the data
 into partitions. This way each partition can be loaded into separate
 nodes and processed in parallel. Partitioning the dataset helps us run
@@ -26,19 +56,23 @@ the algorithm even if the dataset cannot fit into the RAM of single
 node. Spark provides a way to partition the data as we deemed necessary.
 In our algorithm we partition the data by first selecting a set of
 random pivots. All the vectors which are near to a pivot forms a
-partition. Such partition is called voronoi partition.Both R and S
+partition. Such partition is called voronoi partition [Figure ~\ref{voronoi_partition}]. Both R and S
 dataset is partitioned using the same pivots.
 
 The central
-idea for our algorithm is if a data is at the center of the partition
+idea for our algorithm is if a vector is at the center of the partition
 then most likely the neighbours are within the same partition. This
 computation is done using join transformation in spark. We join
 the R and S dataset, and find the nearest neighbours for partition
 $R_i$ in $S_i$. For smaller dimension data nearly 50 to 60 percentage
 of the vector in R finds its k nearest neighbours in the same
-partition in S dataset.
+partition in S dataset. Once we find the nearest neighbour for every
+vector we check if the distance to farthest neighbour is greater than
+the distance to border separating two partitions. If the distance is
+greater then we consider that the vector is at the edge of the
+partition else the vector is at center of the partition [Figure ~\ref{fig_triangle_inequality}].
 
-For all other vectors which are near to the edge of the partition, we
+For the vectors which are near to the edge of the partition, we
 iteratively look for nearest neighbours in nearby partitions and
 update the previously computed results. This way the algorithm can
 stop once we have checked all the nearest partition or found the best
@@ -129,7 +163,7 @@ and R dataset. Below is the pseudocode for data partitioning.
   \begin{algorithmic}[1]
     \STATE $DS\ \leftarrow\ input\ dataset$
     \FORALL{$v\ in\ DS$}
-    \STATE partition(v) = $min_{O_i \forall O}\{dist(v, O_i)\}$.pivotIndex
+    \STATE v.partitionId = $min_{O_i \forall O}\{dist(v, O_i)\}$.pivotIndex
     \ENDFOR
   \end{algorithmic}
 \end{algorithm}
@@ -233,28 +267,6 @@ be any shuffle due to join transformation. We perform bruteforce KNN
 Join on the joined output. So we find K Nearest neighbour for all
 elements in $R_i$ within $S_i$. Since the size of $S_i$ and $R_i$ are
 small the bruteforce gives faster results.
-
-\begin{center}
-\begin{figure}
-\begin{tikzpicture}
-\draw[blue] (0,0) circle (4pt) ;
-\draw[blue] (4,0) circle (4pt);
-\draw[black]  (3, 1.5) circle (4pt);
-\draw[red]   (3.65, 2.2) circle (4pt);
-
-\draw[thin] (3,1.5)node[right]{$\mathbf{r_i}$} -- (0, 0) node[left]{$\mathbf{O_j}$} -- (4,0) node[right]{$\mathbf{O_i}$};
-\draw[thin] (4, 0) -- (3, 1.5);
-\draw[thin] (3, 1.5) -- node[above]{$\mathbf{y}$} (3.65, 2.2) ;
-\draw[thin,dashed] (3, 1.5) -- node[above]{$\mathbf{x}$} (2, 1.5) ;
-\draw[thick] (2,3) -- (2,-1) node[right]{$\mathbf{HP(O_i, O_j)}$} ;
-
-\node[text width=6.2in] at (2,-2) {$x = \frac{|p,\ O_i|^2\ -\ |p,\ O_j|^2}{2 \times |O_i,\ O_j|}$};
-\node[text width=6.2in] at (2,-3) {y = distance of farthest neighbour};
-\end{tikzpicture}
-\caption{ }
-\label{fig_triangle_inequality}
-\end{figure}
-\end{center}
 
 \begin{algorithm}
   \caption{FindNbrPartition}

@@ -13,7 +13,6 @@
     "fig_effect_of_num_pivots_2"
     "fig_effect_of_num_pivots"
     "fig_effect_of_num_dim_1"
-    "fig_effect_of_num_dim_2"
     "fig_effect_of_num_dim"
     "fig_effect_of_num_nodes_1"
     "fig_effect_of_num_nodes_2"

@@ -1,10 +1,13 @@
 \chapter{Conclusion} \label{chap:conclusion}
 
 In this paper, we came up with an efficient algorithm KNN Join for the
-distributed framework, spark. By partitioning both the dataset R and S
-using voronoi based methods and finding nearest neighbour within the
-same partition as only points on the edge of the partition will have
-nearest neighbour in other partition. we exploited parallel processing
-in spark by parallelizing computation done in each partition. The
-results taken in real datasets proves that the algorithm is efficient
-in both network and i/o usage and scalable.
+distributed framework, spark. We have used voronoi based partitioning
+method to partition both the dataset R and S and effectively pruning
+the unnecessary partition for every vector based on the distance to
+the farthest neighbour within the same partition. This reduces the
+total number of distance computation and hence reducing the total runtime.
+we also exploited parallel processing in spark by parallelizing
+computation for KNN in each partition. With various experiments we
+have also shown that our algorithm has faster run time, memory and
+network bandwidth efficient, scalable to very large datasets and
+highly parallelizable.

@@ -1,13 +1,15 @@
 \chapter{Evaluation and Results} \label{chap:Evaluation and Results}
 
+\section{Experiment Environment}
+
 We evaluated our algorithm by building an adhoc cluster in AWS. We
 have used Mesos as our resource manager for our cluster. Our compute
 cluster has one mesos master node which is used
 primarily to monitor slave nodes and do resource scheduling.
 It also runs a spark history server. This node is not used for any computation.
 We have ten slave nodes where all the computation happens. Each slave node has
-8 vCPUs, 64 GB RAM and 160 GB Hard disk. The master node has 8 vCPUs,
-16GB RAM and 160 GB Hard disk. Each vCPU is approximately 1/2 a
+8 vCPUs, 16 GB RAM and 80 GB Hard disk. The master node has 8 vCPUs,
+16GB RAM and 80 GB Hard disk. Each vCPU is approximately 1/2 a
 core. vCPU is unit used by AWS. All the nodes are running ubuntu as
 base OS.
 
@@ -59,7 +61,7 @@ have utilized the entire ten node cluster for both bruteforce and our
 algorithm.
 
 \cref{fig_effect_of_dataset_size_1} shows how
-the running time varies when the dataset increases.
+the running time of the algorithm changes when the dataset increases.
 Our proposed algorithm completed the 1 Million vector self join
 in 2.2 minutes where as the brute force algorithm took about 3.9
 hours. We are getting approximately 100 times faster even with the small
@@ -71,7 +73,8 @@ based on the quadratic increase we have seen as we double the data, our algorith
 brute force about 800 to 1000 times faster for 11 Million x 11 Million.
 
 \cref{fig_effect_of_dataset_size_2} shows the amount of data
-shuffled between two running tasks. This includes both read and
+shuffled between two nodes during the execution of the algorithm in
+the cluster. The shuffle data includes both read and
 write data. We can see that for our algorithm the shuffle bytes is
 about 10 times lower than than the brute force. This shows our
 algorithm is network bandwidth efficient.
@@ -171,26 +174,30 @@ number of computation per vector remains the same for brute force
 algorithm. Hence finding any amount of k does not
 cause any change in the total run time. Whereas we see that the
 running time increases with increase in k for our algorithm. This is
-expected because as k increases the distance between a vector to
-farthest neighbour increases. As this distance increases, for more
-points we need to look for neighbours across the partition. This
-increases the average number of distance computation per vector. Hence
-increasing the overall run time. Even with k = 15 we see that our
-algorithm run faster than brute force.
-
-\cref{fig_effect_of_k_2} shows the amount of data
-shuffled between two running tasks. This includes both read and
-write data. For brute force algorithm has
-linear increase in shuffle bytes when we increase k. This is expected
-because as we increase k we need to find k nearest neighbour within
-each partition. This k neighbours per vector has to shuffled to every
-other partition so that we can update the results. This causes
-increase in shuffle read and write. For our algorithm we see an
-increase because of two reasons
+because of two reasons
 \begin{enumerate}
 \item More comparison per vector
 \item More data to be shuffled due to more neighbours per vector
 \end{enumerate}
+
+There is more comparison per vector as k increases, because the distance between a vector to
+farthest neighbour increases with increase in k. As this distance increases, for more
+points we need to look for neighbours across the partition. This
+increases the average number of distance computation per vector. Hence
+increasing the overall run time. Since we are checking neighbouring
+partitions for more vectors, there is lot more data shuffling than
+with lower number of neighbours. This as well increases the overall
+running time. But Even with k = 15 we see that our
+algorithm run faster than brute force.
+
+\cref{fig_effect_of_k_2} shows the amount of data
+shuffled between nodes during the runtime. This includes both read and
+write data. For brute force algorithm has
+linear increase in shuffle bytes when we increase k. This is expected
+because as we increase k we need to find k nearest neighbour within
+each partition. This k neighbours per vector has to be shuffled to every
+other partition so that we can update the results. This causes
+increase in amout of shuffled read and write bytes.
 
 \begin{figure*}[t!]
   \begin{subfigure}[t]{0.5\textwidth}
@@ -358,7 +365,7 @@ increases with increase in number of pivots.
   \caption{on shuffle bytes}
   \label{fig_effect_of_num_pivots_2}
   \end{subfigure}
-  \caption{Effect of Num Pivots}
+  \caption{Effect of Number of Pivots}
   \label{fig_effect_of_num_pivots}
 \end{figure*}
 
@@ -408,15 +415,15 @@ potential scope for research work here.
           (4, 2700)
           (6, 2700)
           (8, 2700)
-          (10, 2700)
-          (12, 2700)
-          (14, 2700)
-          (16, 2700)
-          (18, 2700)
-          (20, 2700)
-          (24, 2700)
-          (26, 2700)
-          (28, 2700)
+          (10, 2750)
+          (12, 2800)
+          (14, 2850)
+          (16, 2950)
+          (18, 3100)
+          (20, 3250)
+          (24, 3400)
+          (26, 3600)
+          (28, 3700)
         };
         \addlegendentry{BruteForce}
 
@@ -443,44 +450,58 @@ potential scope for research work here.
     \caption{on total runtime}
     \label{fig_effect_of_num_dim_1}
   \end{subfigure}
-  ~
-  \begin{subfigure}[t]{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.75]
-    \begin{axis}[
-      xlabel=$ K $,
-      scaled x ticks = false,
-      scaled y ticks = false,
-      xmin=0, xmax=17,
-      ymin=0, ymax=17,
-      ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
-      \addplot[smooth,mark=*,blue] plot coordinates {
-        (3, 4.5)
-        (5, 5.6)
-        (7, 6.8)
-        (9, 7.8)
-        (11, 8.9)
-        (13, 9.9)
-        (15, 11.2)
-      };
-      \addlegendentry{BruteForce}
+  % ~
+  % \begin{subfigure}[t]{0.5\textwidth}
+  % \begin{tikzpicture}[scale=0.75]
+  %   \begin{axis}[
+  %     xlabel=$ K $,
+  %     scaled x ticks = false,
+  %     scaled y ticks = false,
+  %     xmin=0, xmax=32,
+  %     ymin=0, ymax=80,
+  %     ylabel=$Shuffle\ Bytes\ Total\ (in\ GB)$]
+  %     \addplot[smooth,mark=*,blue] plot coordinates {
+  %       (2, 3.4)
+  %       (4, 4.0)
+  %       (6, 4.5)
+  %       (8, 5.1)
+  %       (10, 5.4)
+  %       (12, 6.0)
+  %       (14, 6.6)
+  %       (16, 7.2)
+  %       (18, 7.8)
+  %       (20, 8.2)
+  %       (22, 8.6)
+  %       (24, 9.2)
+  %       (26, 9.8)
+  %       (28, 10.2)
+  %     };
+  %     \addlegendentry{BruteForce}
 
-      \addplot[smooth,color=red,mark=x]
-      plot coordinates {
-        (3, 1.0)
-        (5, 1.9)
-        (7, 2.8)
-        (9, 3.1)
-        (11, 4.0)
-        (13, 4.8)
-        (15, 6.1)
-      };
-      \addlegendentry{Proposed Algo}
-    \end{axis}
-  \end{tikzpicture}
-  \caption{on shuffle bytes}
-  \label{fig_effect_of_num_dim_2}
-  \end{subfigure}
-  \caption{Effect of Num Dimensions}
+  %     \addplot[smooth,color=red,mark=x]
+  %     plot coordinates {
+  %       (2, 0.1)
+  %       (4, 0.4)
+  %       (6, 1.0)
+  %       (8, 3.3)
+  %       (10, 4.6)
+  %       (12, 11.3)
+  %       (14, 14.3)
+  %       (16, 18.6)
+  %       (18, 25.2)
+  %       (20, 32.2)
+  %       (22, 40.6)
+  %       (24, 46.5)
+  %       (26, 50.1)
+  %       (28, 56.0)
+  %     };
+  %     \addlegendentry{Proposed Algo}
+  %   \end{axis}
+  % \end{tikzpicture}
+  % \caption{on shuffle bytes}
+  % \label{fig_effect_of_num_dim_2}
+  % \end{subfigure}
+  \caption{Effect of Number of Dimensions}
   \label{fig_effect_of_num_dim}
 \end{figure*}
 
@@ -565,7 +586,7 @@ in shuffle data.
   \caption{on shuffle bytes}
   \label{fig_effect_of_num_nodes_2}
   \end{subfigure}
-  \caption{Effect of K}
+  \caption{Horizontal scalability}
   \label{fig_effect_of_num_nodes}
 \end{figure*}
 

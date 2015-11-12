@@ -21,8 +21,10 @@
     "har-peled_approximate_2012"
     "elseberg_comparison_2012"
     "yao_k_2010"
-    "_hadoop_mr"
+    "hadoop_mr"
     "apache_spark"
     "hadoop_mr_arch"
-    "beyer_when_1999")))
+    "wu_top_2008"
+    "beyer_when_1999"
+    "bohm_epsilon_2001")))
 
