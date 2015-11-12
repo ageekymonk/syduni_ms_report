@@ -222,8 +222,8 @@ framework.
 
 \section{Accurate vs Approximate KNN}
 
-Due to the high computational complexity of KNN Join, researchers
-also focused on getting approximate results. Based on the accuracy the
+Due to high computational complexity of KNN Join, researchers
+also focused on getting approximate results quickly. Based on the accuracy the
 research works can be classified into two groups
 \begin{enumerate}
 \item Accurate KNN
@@ -233,12 +233,12 @@ research works can be classified into two groups
 
 Between the accurate and approximate KNN algorithm, there are trade
 off between accuracy and the computation cost. There are few
-works dedicated to get approximate results \cite{stupar_rankreduceprocessing_2010}
+works for getting approximate results \cite{stupar_rankreduceprocessing_2010}
 \cite{zhang_efficient_2012} and few for accurate
 \cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
 \cite{lu_efficient_2012}. Some algorithms also allow to control the
-level of accuracy $\epsilon$  parameter of the results. With better approximation implies
-more computation cost. Choosing either one of the algorithm depends on
+level of accuracy $\epsilon$  parameter of the results. Choosing
+either accurate or approximate algorithm depends on
 application in question.
 
 \medskip
@@ -253,9 +253,9 @@ used in approximate algorithms.
 \medskip
 
 One of the major problem with approximate algorithms is that at higher
-dimensions the accuracy becomes very low. The $\epsilon$ parameter to
-control the level of accuracy, if it is very low can result in very
-poor performance than the accurate one. Only the applications that is
+dimensions the accuracy becomes very low. The $\epsilon$ parameter which
+controls the level of accuracy, if it is very low, can result in very
+poor performance than the accurate one. Only the application, that is
 using the algorithm can decide if such trade off is acceptable.
 
 \medskip
@@ -263,11 +263,12 @@ using the algorithm can decide if such trade off is acceptable.
 \section{Spark}
 Apache spark is an open source distributed framework for cluster
 computing designed and developed by University of California,
-Berkeley. Hadoop Mapreduce uses two stage disk based Mapreduce
-paradigm with two stages being map and reduce. In contrast to that
-spark's in memory multi stage primitives provide about 100 times
-faster performance for certain applications, if the data can fit into
-memory completely. Due to spark's multistage design it is highly
+Berkeley. Spark is considered to be a replacement for Hadoop
+Mapreduce. Hadoop Mapreduce uses two stage disk based Mapreduce
+paradigm. In contrast,
+spark uses multi stage in memory primitives, which provides about 100 times
+faster performance than Hadoop Mapreduce for certain applications, if the data can fit into
+memory completely. Due to spark's multistage design, it is highly
 suitable for machine learning and for other iterative algorithms.
 Spark supports standalone native cluster manager, Hadoop YARN or
 Apache Mesos. We have used Apache Mesos as our cluster manager in our
@@ -282,10 +283,10 @@ to use disk in case if it cannot fit all the data in memory.
 
 Resilient Distributed Dataset(RDD) is the core concept in spark. RDD
 is a distributed table which can hold any data. RDD may contain many
-partitions and each partition is stored in different nodes if needed.
-RDDs are immutable. Any transformations on the RDD returns a new
-RDD. So any RDD has a lineage and in case a node contains an RDD goes
-down, we can recreate the RDD following the lineage structure. This is
+partitions and each partition can be stored in different nodes if needed.
+RDDs are immutable. Any transformations on a RDD returns a new
+RDD. So any RDD has a lineage. In case a node containing a RDD goes
+down, we can recreate the RDD following the lineage. This is
 how spark achieves fault tolerance.
 
 RDD Supports two types of operations
