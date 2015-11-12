@@ -89,10 +89,10 @@ running time is too high (approximately 40 hours, if run on 8 core machine), whi
 deters everyone from using KNN Join. Until late 1990s, KNN Join was
 never considered as a feasible algorithm at all, owing to its computational
 complexity.There are significant amount of research that has been done to reduce the
-computational complexity. Most algorithms that are out today have focussed
-on either creating an Indexing Method or Paritioning Method in a standalone system. This is because most of those research predates the
+computational complexity. Most algorithms that are out today have focused
+on either creating an Indexing Method or Partitioning Method in a standalone system. This is because most of those research predates the
 current big data era. In this modern day of high velocity and high volume of data,
-only a distributed algorithm with reduced computational complexity will yield the results in resonable amount of time.
+only a distributed algorithm with reduced computational complexity will yield the results in reasonable amount of time.
 
 The research works that has been done to optimize the KNN algorithm can be categorized based on
 \begin{enumerate}
@@ -131,7 +131,7 @@ dataset S.
 
 Indexes does not scale for high dimension data. This is true for various
 index algorithms like R tree, $R^* tree$, Quad Tree, Mux tree, B+
-tree. Using index for reducing distance compuation with every element, works
+tree. Using index for reducing distance computation with every element, works
 remarkably well for 2D or 3D geospatial data. The major drawback with the
 index based approach is that when the number of dimensions increase,
 creating an index is much costly and its performance is worse than
@@ -149,18 +149,18 @@ non overlapping partitions. The
 partition can be distance based\cite{lu_efficient_2012} or hashing
 based \cite{stupar_rankreduceprocessing_2010} \cite{yao_k_2010}. For each partition in R only few partitions in S which are
 near to R is considered for presence of nearest neighbours. This
-method quickly simplifies the number of elements which we need to
+method quickly simplifies the number of elements we need to
 compare when we are looking for neighbours.
 
 \medskip
 
-There are few challenges with this approach as well. One
-of the main challenge is to find a way to partition all nearby neighbours for a subset
-$R_i$ in relatively few subsets of $S_i$. Hash based partition cannot
-get partition correctly, which means hash based partition will not
+There are few challenges with partition based approach as well. One
+of the main challenge is to find a way to partition such that for a subset
+$R_i$ all its neighbours are in relatively few subsets of $S_i$. Hash based partition cannot
+get such partition correctly, which means hash based partition will not
 provide accurate KNN Join results. In distance based partition it is difficult to partition
-with relatively low standard deviation in size of the partition. If
-not partitioned properly it can result in one big partition which
+with relatively low standard deviation of size of the partition. If
+not partitioned properly it can result in one big partition, which
 would result in same performance as that of bruteforce.
 
 \bigskip
@@ -168,15 +168,16 @@ would result in same performance as that of bruteforce.
 
 \section{Centralized vs Distributed KNN}
 
-Based on the scalability the reseach works can be divided into two
+Based on the scalability, the research works can be divided into two
 groups
+
 \begin{enumerate}
 \item Centralized KNN
 \item Distributed KNN
 \end{enumerate}
 
 Since most work in KNN Join has been done before the big data era,
-most of the algorithms are designed to be centralizedd
+most of the algorithms are designed to be centralized
 \cite{jagadish_idistance:_2005} \cite{xia_gorder:_2004}
 \cite{bohm_k-nearest_2004} \cite{kuan_fast_1997} \cite{yu_high-dimensional_2010}.
 Several recent studies \cite{stupar_rankreduceprocessing_2010},
@@ -189,32 +190,34 @@ dataset which is not possible otherwise.
 All the centralized algorithms are designed with the idea that the
 data will fit into a single node. With the disk being so cheap, we can
 store most of the data within a single node. With falling cost of on
-demand availability of compute cluster the algorithms does not take
+demand availability of compute cluster, the algorithms does not take
 advantage of parallel processing. Most algorithms which are
 centralized builds an index for the entire data. Making those
-algorithm distributed is rather difficult.
+algorithms distributed is rather difficult.
 
 \medskip
 
 Hadoop Mapreduce was dominant distributed framework for last 8
 years. There has been one research work \cite{lu_efficient_2012} which
 used mapreduce as its framework for its algorithm. The algorithms
-which are crafted for these distributed framework are not easily
-portable to other frameworks. But as the
-systems evolved, mapreduce framework is on the way out. This is
+which are crafted for one distributed framework are not easily
+portable to other frameworks. Hadoop Mapreduce framework which was dominant
+for almost a decade is on the way out. This is
 because mapreduce was designed for scalability. It can scale to handle
 petabytes of data with ease. But it was not designed for
-performance. Any algorithm if designed for mapreduce framework is
+performance. An algorithm if designed for mapreduce framework is
 created as a pipeline of map and reduce steps and all the
-intermediate results are writtent to disk and read from the disk. This
-lowered the performance a lot.
+intermediate results between two map reduce tasks are written to disk
+and the next task reads the data from the disk. This overhead of
+writing and reading from the disk has
+lowered the performance significantly.
 
-Wit the advent of spark with its inmemory primitives, it is quickly becoming the defacto framework for
-distributed computing. There is significant increase in number users
-in spark and it has proved its exceptional performance over
-hadoop mapreduce. But there are no work that has been done to make
-KNN Join better for spark framework. This is an area where significant
-work is needed to convert algorithms in centralized settings and mapreduce framework  to spark
+With the advent of spark, armed with its in-memory primitives, it is quickly becoming the defacto framework for
+distributed computing. There are significant increase in number users
+in spark and it has also proved its exceptional performance over
+hadoop mapreduce. Yet there are no work to design a KNN Join algorithm
+for spark framework. This is an area where significant
+work is needed to convert algorithms for centralized settings and mapreduce framework  to spark
 framework.
 
 \section{Accurate vs Approximate KNN}
@@ -250,7 +253,7 @@ used in approximate algorithms.
 \medskip
 
 One of the major problem with approximate algorithms is that at higher
-dimensions the accuracy becomes very low. The $\epsilon$ paramter to
+dimensions the accuracy becomes very low. The $\epsilon$ parameter to
 control the level of accuracy, if it is very low can result in very
 poor performance than the accurate one. Only the applications that is
 using the algorithm can decide if such trade off is acceptable.
@@ -258,7 +261,7 @@ using the algorithm can decide if such trade off is acceptable.
 \medskip
 
 \section{Spark}
-Apache spark is an opensource distributed framework for cluster
+Apache spark is an open source distributed framework for cluster
 computing designed and developed by University of California,
 Berkeley. Hadoop Mapreduce uses two stage disk based Mapreduce
 paradigm with two stages being map and reduce. In contrast to that
@@ -298,7 +301,7 @@ transformation is called it is not evaluated immediately, it is
 evaluated only when an action is called.
 
 Action operation on a RDD evaluates and returns a new value. It
-evaluates all the Trasformations that are done before the
+evaluates all the Transformations that are done before the
 action. Examples for actions are reduce, collect, take, foreach, etc.
 
 Spark's execution hierarchy has the following elements

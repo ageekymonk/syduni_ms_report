@@ -31,7 +31,7 @@ forest from cartographic variables. It has 6 different classes. Each
 vector has 54 attributes. Out of 54 only the first 10 are integer
 attributes and rest are binary. we have used only first 10 attributes
 in our tests. The dataset is relatively small and contains only 580K
-vectors with classes. The total size of the datset file is 80 MB
+vectors with classes. The total size of the dataset file is 80 MB
 \end{enumerate}
 
 We will compare the results of our algorithm with brute force
@@ -41,7 +41,7 @@ distributed framework. Due to this we study our algorithm performance
 against bruteforce only.
 
 \begin{minipage}{\linewidth}
-In our experiments we have analysed the effect of the following variables on the
+In our experiments we have analyzed the effect of the following variables on the
 overall runtime, shuffle data and RAM utilization
 \begin{enumerate}
 \item Size of the dataset
@@ -197,7 +197,7 @@ linear increase in shuffle bytes when we increase k. This is expected
 because as we increase k we need to find k nearest neighbour within
 each partition. This k neighbours per vector has to be shuffled to every
 other partition so that we can update the results. This causes
-increase in amout of shuffled read and write bytes.
+increase in amount of shuffled read and write bytes.
 
 \begin{figure*}[t!]
   \begin{subfigure}[t]{0.5\textwidth}
@@ -295,7 +295,7 @@ algorithm. This is clearly shown in the V shaped graph we got in our
 tests. If the number of pivots is low, which means number elements per
 partition is high. Since we are doing a join within a partition, this
 will result in increase in number of distance computation per
-vector. This inturn will result in increase in overall run time. If
+vector. This in turn will result in increase in overall run time. If
 the number of pivots is high, which means number of elements per
 partition is low. This means more elements will not have neighbours
 found within a single partition. This increases number of
@@ -507,7 +507,7 @@ potential scope for research work here.
 
 \section{Horizontal Scalability}
 In this section we will study the scalability of our algorithm. We
-will measure the running time and network bandwidth as we horizonally
+will measure the running time and network bandwidth as we horizontally
 scale.
 We have used Higgs Dataset with 2M vectors with 6 dimensions. In this experiment we
 have utilized the entire ten node cluster for our
@@ -516,7 +516,7 @@ algorithm.
 \cref{fig_effect_of_num_nodes_1} shows how
 the running time varies as we horizontally scale our cluster. Ideally,
 Using distributed framework should help us achieve near linear
-scalability. But once we reach a threshold the perfomance start to
+scalability. But once we reach a threshold the performance start to
 remain constant because many nodes will not be used fully
 utilized. This is observed in our results as well. In order to
 optimize cost, one should rightly choose the number nodes so that we can have
